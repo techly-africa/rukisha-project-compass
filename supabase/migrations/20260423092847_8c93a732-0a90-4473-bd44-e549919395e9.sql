@@ -2,7 +2,7 @@
 -- Project (single shared project for now)
 create table public.rk_project (
   id uuid primary key default gen_random_uuid(),
-  name text not null default 'Rukisha Launch',
+  name text not null default 'New Project',
   go_live_date date not null default (current_date + interval '28 days'),
   updated_at timestamptz not null default now()
 );
@@ -52,26 +52,4 @@ alter table public.rk_project replica identity full;
 alter table public.rk_sections replica identity full;
 alter table public.rk_tasks replica identity full;
 
--- Seed default project + sections + tasks
-do $$
-declare
-  pid uuid;
-  s1 uuid; s2 uuid; s3 uuid;
-begin
-  insert into public.rk_project (name) values ('Rukisha Launch') returning id into pid;
-  insert into public.rk_sections (project_id, name, color, position) values (pid, 'Legal & Business', '#1A3C5E', 0) returning id into s1;
-  insert into public.rk_sections (project_id, name, color, position) values (pid, 'Compliance', '#2E75B6', 1) returning id into s2;
-  insert into public.rk_sections (project_id, name, color, position) values (pid, 'Technical', '#C9A227', 2) returning id into s3;
-
-  insert into public.rk_tasks (project_id, section_id, activity, owner, plan_start, plan_duration, actual_start, actual_duration, percent_complete, position) values
-    (pid, s1, 'Register company', 'Alice Mwangi', current_date - 20, 5, current_date - 20, 5, 100, 0),
-    (pid, s1, 'Open business bank account', 'Brian Otieno', current_date - 14, 7, current_date - 13, 8, 100, 1),
-    (pid, s1, 'Draft shareholder agreement', 'Cynthia Wambui', current_date - 7, 10, current_date - 6, 8, 60, 2),
-    (pid, s2, 'Data Protection registration', 'David Kimani', current_date - 5, 8, current_date - 3, 6, 40, 3),
-    (pid, s2, 'AML/KYC policy', 'Esther Njoroge', current_date - 2, 12, current_date - 1, 4, 25, 4),
-    (pid, s2, 'Regulator submission', 'Frank Owino', current_date + 3, 14, null, 0, 0, 5),
-    (pid, s3, 'Architecture design', 'Grace Achieng', current_date - 10, 7, current_date - 10, 7, 100, 6),
-    (pid, s3, 'Build core API', 'Henry Mutiso', current_date - 3, 14, current_date - 2, 10, 55, 7),
-    (pid, s3, 'Frontend MVP', 'Ivy Kariuki', current_date + 2, 14, null, 0, 0, 8),
-    (pid, s3, 'Security audit', 'Joel Wafula', current_date + 14, 7, null, 0, 0, 9);
-end $$;
+-- End of migration

@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/rukisha/AppShell";
 import { Dashboard } from "@/components/rukisha/Dashboard";
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/p/$projectId/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Rukisha Project Tracker" },
+      { title: "Compass — Dashboard" },
       { name: "description", content: "Project status, milestones and progress overview." },
     ],
   }),

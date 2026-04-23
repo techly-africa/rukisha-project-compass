@@ -1,7 +1,17 @@
 import { useMemo } from "react";
 import { dateAdd, daysBetween, getTaskStatus, todayISO, useProject } from "@/lib/rukisha-store";
 
-function Card({ label, value, hint, tone = "default" }: { label: string; value: string | number; hint?: string; tone?: "default" | "good" | "warn" | "bad" | "accent" }) {
+function Card({
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  tone?: "default" | "good" | "warn" | "bad" | "accent";
+}) {
   const toneClass = {
     default: "text-foreground",
     good: "text-[oklch(0.55_0.15_150)]",
@@ -11,14 +21,22 @@ function Card({ label, value, hint, tone = "default" }: { label: string; value: 
   }[tone];
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
       <div className={`mt-2 text-3xl font-bold tabular-nums ${toneClass}`}>{value}</div>
       {hint && <div className="mt-1 text-xs text-muted-foreground">{hint}</div>}
     </div>
   );
 }
 
-function Donut({ segments, total }: { segments: { label: string; value: number; color: string }[]; total: number }) {
+function Donut({
+  segments,
+  total,
+}: {
+  segments: { label: string; value: number; color: string }[];
+  total: number;
+}) {
   const r = 60;
   const c = 2 * Math.PI * r;
   let acc = 0;
@@ -65,7 +83,11 @@ export function Dashboard() {
 
   const stats = useMemo(() => {
     const total = state.tasks.length;
-    let onTrack = 0, atRisk = 0, overdue = 0, complete = 0, sumPct = 0;
+    let onTrack = 0,
+      atRisk = 0,
+      overdue = 0,
+      complete = 0,
+      sumPct = 0;
     for (const t of state.tasks) {
       sumPct += t.percentComplete;
       const s = getTaskStatus(t);
@@ -80,10 +102,18 @@ export function Dashboard() {
   }, [state.tasks, state.goLiveDate, today]);
 
   const sectionDonut = useMemo(() => {
-    const palette = ["var(--rk-navy)", "var(--rk-blue)", "var(--rk-gold)", "var(--rk-warn)", "var(--rk-success)"];
+    const palette = [
+      "var(--rk-navy)",
+      "var(--rk-blue)",
+      "var(--rk-gold)",
+      "var(--rk-warn)",
+      "var(--rk-success)",
+    ];
     const segs = state.sections.map((sec, i) => {
       const tasks = state.tasks.filter((t) => t.sectionId === sec.id);
-      const avg = tasks.length ? tasks.reduce((a, b) => a + b.percentComplete, 0) / tasks.length : 0;
+      const avg = tasks.length
+        ? tasks.reduce((a, b) => a + b.percentComplete, 0) / tasks.length
+        : 0;
       return { label: sec.name, value: avg, color: palette[i % palette.length] };
     });
     return { segs, total: segs.reduce((a, b) => a + b.value, 0) };
@@ -115,16 +145,22 @@ export function Dashboard() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Completion by section</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Completion by section
+          </h3>
           <div className="mt-4">
             <Donut segments={sectionDonut.segs} total={sectionDonut.total} />
           </div>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Upcoming milestones</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Upcoming milestones
+          </h3>
           <ol className="mt-4 space-y-3">
-            {milestones.length === 0 && <li className="text-sm text-muted-foreground">No upcoming milestones.</li>}
+            {milestones.length === 0 && (
+              <li className="text-sm text-muted-foreground">No upcoming milestones.</li>
+            )}
             {milestones.map((m) => {
               const sec = state.sections.find((s) => s.id === m.sectionId);
               const days = daysBetween(today, m.end);
@@ -134,7 +170,9 @@ export function Dashboard() {
                     <span className="text-[9px] uppercase">
                       {new Date(m.end).toLocaleDateString(undefined, { month: "short" })}
                     </span>
-                    <span className="text-sm font-bold leading-none">{new Date(m.end).getDate()}</span>
+                    <span className="text-sm font-bold leading-none">
+                      {new Date(m.end).getDate()}
+                    </span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{m.activity}</div>
@@ -142,14 +180,18 @@ export function Dashboard() {
                       {sec?.name} • {m.owner || "Unassigned"}
                     </div>
                   </div>
-                  <span className={`text-xs tabular-nums ${days < 0 ? "text-[var(--rk-danger)]" : days < 3 ? "text-[var(--rk-warn)]" : "text-muted-foreground"}`}>
+                  <span
+                    className={`text-xs tabular-nums ${days < 0 ? "text-[var(--rk-danger)]" : days < 3 ? "text-[var(--rk-warn)]" : "text-muted-foreground"}`}
+                  >
                     {days < 0 ? `${-days}d late` : days === 0 ? "today" : `in ${days}d`}
                   </span>
                 </li>
               );
             })}
             <li className="flex items-center gap-3 border-t border-border pt-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--rk-gold)] text-[var(--rk-navy)] text-lg">★</div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--rk-gold)] text-[var(--rk-navy)] text-lg">
+                ★
+              </div>
               <div className="flex-1">
                 <div className="text-sm font-semibold">GO LIVE</div>
                 <div className="text-xs text-muted-foreground">{state.goLiveDate}</div>

@@ -1,10 +1,20 @@
 import { useState } from "react";
 import { actions, useProject } from "@/lib/rukisha-store";
 import type { ProjectState } from "@/lib/rukisha-types";
+import { toast } from "sonner";
 
 function toCSV(state: ProjectState): string {
   const rows = [
-    ["Section", "Activity", "Owner", "Plan Start", "Plan Duration", "Actual Start", "Actual Duration", "% Complete"],
+    [
+      "Section",
+      "Activity",
+      "Owner",
+      "Plan Start",
+      "Plan Duration",
+      "Actual Start",
+      "Actual Duration",
+      "% Complete",
+    ],
   ];
   for (const sec of state.sections) {
     for (const t of state.tasks.filter((x) => x.sectionId === sec.id)) {
@@ -20,7 +30,9 @@ function toCSV(state: ProjectState): string {
       ]);
     }
   }
-  return rows.map((r) => r.map((c) => `"${(c ?? "").toString().replace(/"/g, '""')}"`).join(",")).join("\n");
+  return rows
+    .map((r) => r.map((c) => `"${(c ?? "").toString().replace(/"/g, '""')}"`).join(","))
+    .join("\n");
 }
 
 function download(name: string, content: string, mime: string) {
@@ -44,25 +56,30 @@ export function Toolbar() {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      toast.success("Snapshot link copied to clipboard");
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      prompt("Copy this snapshot URL:", url);
+      toast.error("Failed to copy link. Please manually copy the URL from the browser bar.");
     }
   };
 
   return (
     <div className="no-print flex flex-wrap items-center gap-2 border-b border-border bg-card/60 px-4 py-3 md:px-6">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Go-live</span>
+        <span className="text-xs text-muted-foreground mr-1">Go-live</span>
         <input
           type="date"
           value={state.goLiveDate}
           onChange={(e) => actions.setGoLive(e.target.value)}
-          className="rounded border border-border bg-background px-2 py-1 text-xs"
+          className="rounded border border-border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-[var(--rk-navy)]"
         />
       </div>
-      <div className="ml-auto flex flex-wrap items-center gap-2">
+
+      <div className="mx-4 hidden lg:block">
         <Legend />
+      </div>
+
+      <div className="ml-auto flex flex-wrap items-center gap-2">
         <button
           onClick={() => download(`${state.projectName}.csv`, toCSV(state), "text/csv")}
           className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted"
@@ -81,38 +98,53 @@ export function Toolbar() {
         >
           {copied ? "✓ Link copied" : "Share snapshot"}
         </button>
-        <button
-          onClick={() => {
-            if (confirm("Reset all data to demo defaults?")) actions.reset();
-          }}
-          className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
-        >
-          Reset
-        </button>
+
+        {typeof window !== "undefined" &&
+          localStorage.getItem("rk-email")?.toLowerCase() === "cbienaime@rukisha.co.rw" && (
+            <button
+              onClick={() => {
+                toast("Reset all project data?", {
+                  description:
+                    "This will permanently clear all tasks and stakeholders in the cloud.",
+                  action: {
+                    label: "Reset",
+                    onClick: () => actions.reset(),
+                  },
+                });
+              }}
+              className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+            >
+              Reset
+            </button>
+          )}
       </div>
     </div>
   );
 }
 
 function Legend() {
-  const items = [
-    { label: "Planned", color: "var(--rk-bar-planned)", border: "var(--rk-blue)" },
-    { label: "In progress", color: "var(--rk-bar-progress)" },
-    { label: "Complete", color: "var(--rk-bar-done)" },
-    { label: "Overrun", color: "var(--rk-bar-overrun)" },
-    { label: "Overrun progressing", color: "var(--rk-bar-overrun-progress)" },
-  ];
   return (
-    <div className="hidden lg:flex items-center gap-3 text-[11px] text-muted-foreground">
-      {items.map((i) => (
-        <div key={i.label} className="flex items-center gap-1.5">
-          <span
-            className="inline-block h-3 w-5 rounded"
-            style={{ background: i.color, border: i.border ? `1px solid ${i.border}` : undefined }}
-          />
-          {i.label}
-        </div>
-      ))}
+    <div className="flex items-center gap-6 text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <div className="h-3 w-5 bg-[#CBBED1] opacity-70 [background-image:repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(255,255,255,0.4)_2px,rgba(255,255,255,0.4)_4px)] rounded-[1px]" />
+        <span>Plan Duration</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="h-3 w-5 bg-[#CBBED1] opacity-90 [background-image:repeating-linear-gradient(-45deg,transparent,transparent_2px,rgba(255,255,255,0.3)_2px,rgba(255,255,255,0.3)_4px)] rounded-[1px]" />
+        <span>Actual Start</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="h-3 w-5 bg-[var(--rk-navy)] rounded-[1px]" />
+        <span>% Complete</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="h-3 w-5 bg-[#E6AC5C] opacity-70 [background-image:repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(255,255,255,0.4)_2px,rgba(255,255,255,0.4)_4px)] rounded-[1px]" />
+        <span>Actual (beyond plan)</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="h-3 w-5 bg-[#E6AC5C] rounded-[1px]" />
+        <span>% Complete (beyond plan)</span>
+      </div>
     </div>
   );
 }

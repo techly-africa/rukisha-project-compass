@@ -9,55 +9,85 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PProjectIdRouteImport } from './routes/p.$projectId'
+import { Route as PProjectIdIndexRouteImport } from './routes/p.$projectId.index'
+import { Route as PProjectIdSetupRouteImport } from './routes/p.$projectId.setup'
+import { Route as PProjectIdDashboardRouteImport } from './routes/p.$projectId.dashboard'
 
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PProjectIdRoute = PProjectIdRouteImport.update({
+  id: '/p/$projectId',
+  path: '/p/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PProjectIdIndexRoute = PProjectIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PProjectIdRoute,
+} as any)
+const PProjectIdSetupRoute = PProjectIdSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => PProjectIdRoute,
+} as any)
+const PProjectIdDashboardRoute = PProjectIdDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => PProjectIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/p/$projectId': typeof PProjectIdRouteWithChildren
+  '/p/$projectId/dashboard': typeof PProjectIdDashboardRoute
+  '/p/$projectId/setup': typeof PProjectIdSetupRoute
+  '/p/$projectId/': typeof PProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/p/$projectId/dashboard': typeof PProjectIdDashboardRoute
+  '/p/$projectId/setup': typeof PProjectIdSetupRoute
+  '/p/$projectId': typeof PProjectIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/p/$projectId': typeof PProjectIdRouteWithChildren
+  '/p/$projectId/dashboard': typeof PProjectIdDashboardRoute
+  '/p/$projectId/setup': typeof PProjectIdSetupRoute
+  '/p/$projectId/': typeof PProjectIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/p/$projectId'
+    | '/p/$projectId/dashboard'
+    | '/p/$projectId/setup'
+    | '/p/$projectId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard'
-  id: '__root__' | '/' | '/dashboard'
+  to: '/' | '/p/$projectId/dashboard' | '/p/$projectId/setup' | '/p/$projectId'
+  id:
+    | '__root__'
+    | '/'
+    | '/p/$projectId'
+    | '/p/$projectId/dashboard'
+    | '/p/$projectId/setup'
+    | '/p/$projectId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRoute
+  PProjectIdRoute: typeof PProjectIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -65,13 +95,66 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/p/$projectId': {
+      id: '/p/$projectId'
+      path: '/p/$projectId'
+      fullPath: '/p/$projectId'
+      preLoaderRoute: typeof PProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$projectId/': {
+      id: '/p/$projectId/'
+      path: '/'
+      fullPath: '/p/$projectId/'
+      preLoaderRoute: typeof PProjectIdIndexRouteImport
+      parentRoute: typeof PProjectIdRoute
+    }
+    '/p/$projectId/setup': {
+      id: '/p/$projectId/setup'
+      path: '/setup'
+      fullPath: '/p/$projectId/setup'
+      preLoaderRoute: typeof PProjectIdSetupRouteImport
+      parentRoute: typeof PProjectIdRoute
+    }
+    '/p/$projectId/dashboard': {
+      id: '/p/$projectId/dashboard'
+      path: '/dashboard'
+      fullPath: '/p/$projectId/dashboard'
+      preLoaderRoute: typeof PProjectIdDashboardRouteImport
+      parentRoute: typeof PProjectIdRoute
+    }
   }
 }
 
+interface PProjectIdRouteChildren {
+  PProjectIdDashboardRoute: typeof PProjectIdDashboardRoute
+  PProjectIdSetupRoute: typeof PProjectIdSetupRoute
+  PProjectIdIndexRoute: typeof PProjectIdIndexRoute
+}
+
+const PProjectIdRouteChildren: PProjectIdRouteChildren = {
+  PProjectIdDashboardRoute: PProjectIdDashboardRoute,
+  PProjectIdSetupRoute: PProjectIdSetupRoute,
+  PProjectIdIndexRoute: PProjectIdIndexRoute,
+}
+
+const PProjectIdRouteWithChildren = PProjectIdRoute._addFileChildren(
+  PProjectIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRoute,
+  PProjectIdRoute: PProjectIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

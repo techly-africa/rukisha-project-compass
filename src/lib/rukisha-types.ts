@@ -1,5 +1,11 @@
 export type TaskStatus = "not_started" | "in_progress" | "complete" | "at_risk";
 
+export interface TeamMember {
+  id: string;
+  email: string;
+  name: string;
+}
+
 export interface Task {
   id: string;
   sectionId: string;
@@ -18,10 +24,26 @@ export interface Section {
   color: string; // accent color hint
 }
 
+export interface Stakeholder {
+  id: string;
+  name: string;
+  role: string;
+}
+
+export interface ProjectInfo {
+  id: string;
+  name: string;
+  goLiveDate: string;
+  updatedAt: string;
+}
+
 export interface ProjectState {
+  id: string | null;
   projectName: string;
   goLiveDate: string; // YYYY-MM-DD
+  stakeholders: Stakeholder[];
   sections: Section[];
   tasks: Task[];
   darkMode: boolean;
+  userProjects: ProjectInfo[];
 }

@@ -1,0 +1,17 @@
+{
+  "name": "Compass Project Tracker",
+  "short_name": "Compass",
+  "description": "Premium project tracking and portfolio management by Avel Africa.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1A3C5E",
+  "theme_color": "#1A3C5E",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

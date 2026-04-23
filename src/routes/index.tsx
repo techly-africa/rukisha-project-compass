@@ -1,23 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { GanttChart } from "@/components/rukisha/GanttChart";
-import { Toolbar } from "@/components/rukisha/Toolbar";
-import { AppShell } from "@/components/rukisha/AppShell";
+import { ProjectPortfolio } from "@/components/rukisha/ProjectPortfolio";
+import { useHydratedProject } from "@/lib/rukisha-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Rukisha Project Tracker — Gantt" },
-      { name: "description", content: "Beautiful Gantt-style project tracker for launches and rollouts." },
+      { title: "Compass — Portfolio" },
+      { name: "description", content: "Compass project tracker — your project portfolio." },
     ],
   }),
-  component: GanttPage,
+  component: PortfolioPage,
 });
 
-function GanttPage() {
-  return (
-    <AppShell>
-      <Toolbar />
-      <GanttChart />
-    </AppShell>
-  );
+function PortfolioPage() {
+  useHydratedProject(); // Load user projects
+  return <ProjectPortfolio />;
 }

@@ -1,4 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { EmailGate } from "@/components/rukisha/EmailGate";
+import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 
@@ -29,19 +31,29 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Compass — Project Tracker" },
+      { name: "description", content: "Compass — track your project from kickoff to go-live." },
+      { property: "og:title", content: "Compass — Project Tracker" },
+      {
+        property: "og:description",
+        content: "Compass — track your project from kickoff to go-live.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
+        rel: "manifest",
+        href: "/manifest.webmanifest",
+      },
+      {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        href: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%231A3C5E" /><circle cx="16" cy="16" r="10" stroke="%23C9A227" stroke-width="2" fill="none" /><polygon points="20.24 11.76 18.12 18.12 11.76 20.24 13.88 13.88" fill="%23C9A227" /></svg>',
       },
     ],
   }),
@@ -52,12 +64,25 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
+        <Toaster
+          closeButton
+          position="top-right"
+          expand={true}
+          richColors
+          toastOptions={{
+            style: {
+              background: "var(--rk-navy)",
+              color: "white",
+              border: "1px solid var(--border)",
+            },
+          }}
+        />
         <Scripts />
       </body>
     </html>
@@ -65,5 +90,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <EmailGate>
+      <Outlet />
+    </EmailGate>
+  );
 }
