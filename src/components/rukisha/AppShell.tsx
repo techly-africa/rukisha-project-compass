@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
-import { actions, useHydratedProject, useProject } from "@/lib/rukisha-store";
+import { useEffect, useState, type ReactNode } from "react";
+import { actions, useHydratedProject, useIsLoaded, useProject } from "@/lib/rukisha-store";
 
 function Icon({ d, className }: { d: string; className?: string }) {
   return (
@@ -13,7 +13,13 @@ function Icon({ d, className }: { d: string; className?: string }) {
 export function AppShell({ children }: { children: ReactNode }) {
   useHydratedProject();
   const state = useProject();
+  const isLoaded = useIsLoaded();
   const { location } = useRouterState();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -82,7 +88,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
           </div>
         </header>
-        <main className="flex-1 min-w-0">{children}</main>
+        <main className="flex-1 min-w-0">
+          {mounted && isLoaded ? (
+            children
+          ) : (
+            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+              Loading project from Lovable Cloud…
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
