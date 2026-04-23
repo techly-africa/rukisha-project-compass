@@ -4,10 +4,11 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
+    "dev": "vite dev --port 8080 --host 0.0.0.0",
     "build": "vite build && mkdir -p dist/client && cp index.html dist/client/index.html",
     "build:dev": "vite build --mode development && mkdir -p dist/client && cp index.html dist/client/index.html",
-    "preview": "vite preview",
+    "preview": "vite preview --port 8080 --host 0.0.0.0",
+    "start": "vite preview --port 8080 --host 0.0.0.0",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
