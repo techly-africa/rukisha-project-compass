@@ -1,7 +1,6 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import type { ProjectState, Section, Task } from "./rukisha-types";
-
-const STORAGE_KEY = "rukisha-project-tracker-v1";
 
 function todayISO(offset = 0): string {
   const d = new Date();
@@ -13,176 +12,258 @@ function uid(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-const defaultState: ProjectState = (() => {
-  const s1: Section = { id: "s1", name: "Legal & Business", color: "#1A3C5E" };
-  const s2: Section = { id: "s2", name: "Compliance", color: "#2E75B6" };
-  const s3: Section = { id: "s3", name: "Technical", color: "#C9A227" };
-  const tasks: Task[] = [
-    { id: uid(), sectionId: "s1", activity: "Register company", owner: "Alice Mwangi", planStart: todayISO(-20), planDuration: 5, actualStart: todayISO(-20), actualDuration: 5, percentComplete: 100 },
-    { id: uid(), sectionId: "s1", activity: "Open business bank account", owner: "Brian Otieno", planStart: todayISO(-14), planDuration: 7, actualStart: todayISO(-13), actualDuration: 8, percentComplete: 100 },
-    { id: uid(), sectionId: "s1", activity: "Draft shareholder agreement", owner: "Cynthia Wambui", planStart: todayISO(-7), planDuration: 10, actualStart: todayISO(-6), actualDuration: 8, percentComplete: 60 },
-    { id: uid(), sectionId: "s2", activity: "Data Protection registration", owner: "David Kimani", planStart: todayISO(-5), planDuration: 8, actualStart: todayISO(-3), actualDuration: 6, percentComplete: 40 },
-    { id: uid(), sectionId: "s2", activity: "AML/KYC policy", owner: "Esther Njoroge", planStart: todayISO(-2), planDuration: 12, actualStart: todayISO(-1), actualDuration: 4, percentComplete: 25 },
-    { id: uid(), sectionId: "s2", activity: "Regulator submission", owner: "Frank Owino", planStart: todayISO(3), planDuration: 14, actualStart: null, actualDuration: 0, percentComplete: 0 },
-    { id: uid(), sectionId: "s3", activity: "Architecture design", owner: "Grace Achieng", planStart: todayISO(-10), planDuration: 7, actualStart: todayISO(-10), actualDuration: 7, percentComplete: 100 },
-    { id: uid(), sectionId: "s3", activity: "Build core API", owner: "Henry Mutiso", planStart: todayISO(-3), planDuration: 14, actualStart: todayISO(-2), actualDuration: 10, percentComplete: 55 },
-    { id: uid(), sectionId: "s3", activity: "Frontend MVP", owner: "Ivy Kariuki", planStart: todayISO(2), planDuration: 14, actualStart: null, actualDuration: 0, percentComplete: 0 },
-    { id: uid(), sectionId: "s3", activity: "Security audit", owner: "Joel Wafula", planStart: todayISO(14), planDuration: 7, actualStart: null, actualDuration: 0, percentComplete: 0 },
-  ];
-  return {
-    projectName: "Rukisha Launch",
-    goLiveDate: todayISO(28),
-    sections: [s1, s2, s3],
-    tasks,
-    darkMode: false,
-  };
-})();
+const emptyState: ProjectState = {
+  projectName: "Rukisha Launch",
+  goLiveDate: todayISO(28),
+  sections: [],
+  tasks: [],
+  darkMode: false,
+};
 
-let state: ProjectState = defaultState;
+let state: ProjectState = emptyState;
+let projectId: string | null = null;
+let loaded = false;
 const listeners = new Set<() => void>();
 
 function emit() {
   for (const l of listeners) l();
 }
 
-function persist() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {}
-}
-
-export function loadFromStorage() {
-  if (typeof window === "undefined") return;
-  // URL snapshot takes precedence
-  const hash = window.location.hash;
-  if (hash.startsWith("#data=")) {
-    try {
-      const json = decodeURIComponent(atob(hash.slice(6)));
-      const parsed = JSON.parse(json);
-      state = { ...defaultState, ...parsed };
-      persist();
-      emit();
-      return;
-    } catch {}
-  }
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      state = { ...defaultState, ...JSON.parse(raw) };
-      emit();
-    }
-  } catch {}
+function setState(updater: (s: ProjectState) => ProjectState) {
+  state = updater(state);
+  emit();
 }
 
 export function getState(): ProjectState {
   return state;
 }
 
-function setState(updater: (s: ProjectState) => ProjectState) {
-  state = updater(state);
-  persist();
+export function subscribe(l: () => void) {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+}
+
+// --- Mapping helpers ---
+type DbSection = { id: string; name: string; color: string; position: number };
+type DbTask = {
+  id: string;
+  section_id: string;
+  activity: string;
+  owner: string;
+  plan_start: string;
+  plan_duration: number;
+  actual_start: string | null;
+  actual_duration: number;
+  percent_complete: number;
+  position: number;
+};
+
+function mapSection(s: DbSection): Section {
+  return { id: s.id, name: s.name, color: s.color };
+}
+function mapTask(t: DbTask): Task {
+  return {
+    id: t.id,
+    sectionId: t.section_id,
+    activity: t.activity,
+    owner: t.owner,
+    planStart: t.plan_start,
+    planDuration: t.plan_duration,
+    actualStart: t.actual_start,
+    actualDuration: t.actual_duration,
+    percentComplete: t.percent_complete,
+  };
+}
+
+// --- Load + realtime ---
+async function loadAll() {
+  const { data: projects } = await supabase
+    .from("rk_project")
+    .select("*")
+    .order("updated_at", { ascending: true })
+    .limit(1);
+
+  if (!projects || projects.length === 0) return;
+  const project = projects[0];
+  projectId = project.id;
+
+  const [{ data: sections }, { data: tasks }] = await Promise.all([
+    supabase.from("rk_sections").select("*").eq("project_id", projectId!).order("position"),
+    supabase.from("rk_tasks").select("*").eq("project_id", projectId!).order("position"),
+  ]);
+
+  const localDark =
+    typeof window !== "undefined" ? localStorage.getItem("rk-dark") === "1" : false;
+
+  state = {
+    projectName: project.name,
+    goLiveDate: project.go_live_date,
+    sections: (sections ?? []).map(mapSection),
+    tasks: (tasks ?? []).map(mapTask),
+    darkMode: localDark,
+  };
+  loaded = true;
   emit();
 }
 
-export function subscribe(l: () => void) {
-  listeners.add(l);
-  return () => listeners.delete(l);
+let channelStarted = false;
+function startRealtime() {
+  if (channelStarted) return;
+  channelStarted = true;
+  supabase
+    .channel("rukisha-sync")
+    .on("postgres_changes", { event: "*", schema: "public", table: "rk_project" }, () => loadAll())
+    .on("postgres_changes", { event: "*", schema: "public", table: "rk_sections" }, () => loadAll())
+    .on("postgres_changes", { event: "*", schema: "public", table: "rk_tasks" }, () => loadAll())
+    .subscribe();
 }
 
 export function useProject(): ProjectState {
   return useSyncExternalStore(
     subscribe,
     () => state,
-    () => defaultState,
+    () => emptyState,
   );
 }
 
 export function useHydratedProject() {
-  // Ensure load happens once on client
+  const [, setReady] = useState(false);
   useEffect(() => {
-    loadFromStorage();
+    loadAll().then(() => {
+      setReady(true);
+      startRealtime();
+    });
   }, []);
+}
+
+export function useIsLoaded(): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    () => loaded,
+    () => false,
+  );
 }
 
 // --- Mutations ---
 export const actions = {
-  setProjectName(name: string) {
+  async setProjectName(name: string) {
+    if (!projectId) return;
     setState((s) => ({ ...s, projectName: name }));
+    await supabase.from("rk_project").update({ name, updated_at: new Date().toISOString() }).eq("id", projectId);
   },
-  setGoLive(date: string) {
+  async setGoLive(date: string) {
+    if (!projectId) return;
     setState((s) => ({ ...s, goLiveDate: date }));
+    await supabase
+      .from("rk_project")
+      .update({ go_live_date: date, updated_at: new Date().toISOString() })
+      .eq("id", projectId);
   },
   toggleDark() {
-    setState((s) => ({ ...s, darkMode: !s.darkMode }));
+    setState((s) => {
+      const next = !s.darkMode;
+      if (typeof window !== "undefined") localStorage.setItem("rk-dark", next ? "1" : "0");
+      return { ...s, darkMode: next };
+    });
   },
-  updateTask(id: string, patch: Partial<Task>) {
+  async updateTask(id: string, patch: Partial<Task>) {
     setState((s) => ({
       ...s,
       tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
     }));
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.activity !== undefined) dbPatch.activity = patch.activity;
+    if (patch.owner !== undefined) dbPatch.owner = patch.owner;
+    if (patch.planStart !== undefined) dbPatch.plan_start = patch.planStart;
+    if (patch.planDuration !== undefined) dbPatch.plan_duration = patch.planDuration;
+    if (patch.actualStart !== undefined) dbPatch.actual_start = patch.actualStart;
+    if (patch.actualDuration !== undefined) dbPatch.actual_duration = patch.actualDuration;
+    if (patch.percentComplete !== undefined) dbPatch.percent_complete = patch.percentComplete;
+    if (patch.sectionId !== undefined) dbPatch.section_id = patch.sectionId;
+    if (Object.keys(dbPatch).length === 0) return;
+    await supabase.from("rk_tasks").update(dbPatch).eq("id", id);
   },
-  addTask(sectionId: string) {
-    setState((s) => ({
-      ...s,
-      tasks: [
-        ...s.tasks,
-        {
-          id: uid(),
-          sectionId,
-          activity: "New task",
-          owner: "",
-          planStart: todayISO(),
-          planDuration: 5,
-          actualStart: null,
-          actualDuration: 0,
-          percentComplete: 0,
-        },
-      ],
-    }));
+  async addTask(sectionId: string) {
+    if (!projectId) return;
+    const position = state.tasks.length;
+    const { data } = await supabase
+      .from("rk_tasks")
+      .insert({
+        project_id: projectId,
+        section_id: sectionId,
+        activity: "New task",
+        owner: "",
+        plan_start: todayISO(),
+        plan_duration: 5,
+        actual_duration: 0,
+        percent_complete: 0,
+        position,
+      })
+      .select()
+      .single();
+    if (data) {
+      setState((s) => ({ ...s, tasks: [...s.tasks, mapTask(data as DbTask)] }));
+    }
   },
-  deleteTask(id: string) {
+  async deleteTask(id: string) {
     setState((s) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== id) }));
+    await supabase.from("rk_tasks").delete().eq("id", id);
   },
-  moveTask(id: string, direction: -1 | 1) {
-    setState((s) => {
-      const idx = s.tasks.findIndex((t) => t.id === id);
-      if (idx < 0) return s;
-      const target = idx + direction;
-      if (target < 0 || target >= s.tasks.length) return s;
-      const tasks = [...s.tasks];
-      const [removed] = tasks.splice(idx, 1);
-      tasks.splice(target, 0, removed);
-      return { ...s, tasks };
-    });
+  async moveTask(id: string, direction: -1 | 1) {
+    const idx = state.tasks.findIndex((t) => t.id === id);
+    if (idx < 0) return;
+    const target = idx + direction;
+    if (target < 0 || target >= state.tasks.length) return;
+    const tasks = [...state.tasks];
+    const [removed] = tasks.splice(idx, 1);
+    tasks.splice(target, 0, removed);
+    setState((s) => ({ ...s, tasks }));
+    // Persist new positions
+    await Promise.all(
+      tasks.map((t, i) => supabase.from("rk_tasks").update({ position: i }).eq("id", t.id)),
+    );
   },
-  addSection(name: string) {
-    setState((s) => ({
-      ...s,
-      sections: [...s.sections, { id: uid(), name, color: "#2E75B6" }],
-    }));
+  async addSection(name: string) {
+    if (!projectId) return;
+    const position = state.sections.length;
+    const { data } = await supabase
+      .from("rk_sections")
+      .insert({ project_id: projectId, name, color: "#2E75B6", position })
+      .select()
+      .single();
+    if (data) setState((s) => ({ ...s, sections: [...s.sections, mapSection(data as DbSection)] }));
   },
-  updateSection(id: string, patch: Partial<Section>) {
+  async updateSection(id: string, patch: Partial<Section>) {
     setState((s) => ({
       ...s,
       sections: s.sections.map((sec) => (sec.id === id ? { ...sec, ...patch } : sec)),
     }));
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.color !== undefined) dbPatch.color = patch.color;
+    if (Object.keys(dbPatch).length === 0) return;
+    await supabase.from("rk_sections").update(dbPatch).eq("id", id);
   },
-  deleteSection(id: string) {
+  async deleteSection(id: string) {
     setState((s) => ({
       ...s,
       sections: s.sections.filter((sec) => sec.id !== id),
       tasks: s.tasks.filter((t) => t.sectionId !== id),
     }));
+    await supabase.from("rk_sections").delete().eq("id", id);
   },
-  reset() {
-    state = defaultState;
-    persist();
-    emit();
+  async reset() {
+    if (!projectId) return;
+    if (!confirm("Reset all data? This will clear every task and section in the cloud.")) return;
+    await supabase.from("rk_tasks").delete().eq("project_id", projectId);
+    await supabase.from("rk_sections").delete().eq("project_id", projectId);
+    await loadAll();
   },
-  importState(next: ProjectState) {
-    state = { ...defaultState, ...next };
-    persist();
-    emit();
+  importState(_next: ProjectState) {
+    // Snapshot import disabled in cloud mode — data is shared.
+    console.warn("importState is disabled when synced to Lovable Cloud.");
   },
 };
 
