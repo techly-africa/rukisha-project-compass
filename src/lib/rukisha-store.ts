@@ -173,7 +173,7 @@ export const actions = {
       ...s,
       tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
     }));
-    const dbPatch: Record<string, unknown> = {};
+    const dbPatch: Partial<DbTask> = {};
     if (patch.activity !== undefined) dbPatch.activity = patch.activity;
     if (patch.owner !== undefined) dbPatch.owner = patch.owner;
     if (patch.planStart !== undefined) dbPatch.plan_start = patch.planStart;
@@ -240,7 +240,7 @@ export const actions = {
       ...s,
       sections: s.sections.map((sec) => (sec.id === id ? { ...sec, ...patch } : sec)),
     }));
-    const dbPatch: Record<string, unknown> = {};
+    const dbPatch: Partial<DbSection> = {};
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.color !== undefined) dbPatch.color = patch.color;
     if (Object.keys(dbPatch).length === 0) return;
