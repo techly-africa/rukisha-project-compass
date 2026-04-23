@@ -30,8 +30,10 @@ export function EmailGate({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { data: hasAccess, error: rpcErr } = await (supabase as any)
-        .rpc("check_access", { p_email: saved });
+      // @ts-ignore - check_access is a new RPC not yet in generated types
+      const { data: hasAccess, error: rpcErr } = await supabase.rpc("check_access", {
+        p_email: saved,
+      });
 
       if (rpcErr || !hasAccess) {
         setGateState("prompt");
@@ -49,8 +51,10 @@ export function EmailGate({ children }: { children: ReactNode }) {
     setError("");
     const email = emailInput.trim().toLowerCase();
 
-    const { data: hasAccess, error: fetchErr } = await (supabase as any)
-      .rpc("check_access", { p_email: email });
+    // @ts-ignore
+    const { data: hasAccess, error: fetchErr } = await supabase.rpc("check_access", {
+      p_email: email,
+    });
 
     if (hasAccess && !fetchErr) {
       localStorage.setItem(EMAIL_KEY, email);

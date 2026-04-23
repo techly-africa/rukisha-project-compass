@@ -92,15 +92,16 @@ async function loadAll(id?: string) {
 
   if (!email) return;
   const userEmail = email.trim().toLowerCase();
-  
-  // Set context for RLS in this session
-  await (supabase as any).rpc("set_user_context", { p_email: userEmail });
-  
+
+  // @ts-ignore
+  await supabase.rpc("set_user_context", { p_email: userEmail });
+
   localStorage.setItem("app.user_email", userEmail);
 
   // 1. Check if user is a super admin
+  // @ts-ignore
   const { data: adminCheck } = await supabase
-    .from("rk_superadmins" as any)
+    .from("rk_superadmins")
     .select("email")
     .eq("email", userEmail)
     .maybeSingle();
