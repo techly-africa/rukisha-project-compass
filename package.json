@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "build": "vite build && mkdir -p dist/client && cp index.html dist/client/index.html",
+    "build:dev": "vite build --mode development && mkdir -p dist/client && cp index.html dist/client/index.html",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
