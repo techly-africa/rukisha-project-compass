@@ -14,7 +14,122 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      rk_project: {
+        Row: {
+          go_live_date: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          go_live_date?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          go_live_date?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rk_sections: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          project_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          project_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rk_sections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rk_project"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rk_tasks: {
+        Row: {
+          activity: string
+          actual_duration: number
+          actual_start: string | null
+          created_at: string
+          id: string
+          owner: string
+          percent_complete: number
+          plan_duration: number
+          plan_start: string
+          position: number
+          project_id: string
+          section_id: string
+        }
+        Insert: {
+          activity?: string
+          actual_duration?: number
+          actual_start?: string | null
+          created_at?: string
+          id?: string
+          owner?: string
+          percent_complete?: number
+          plan_duration?: number
+          plan_start?: string
+          position?: number
+          project_id: string
+          section_id: string
+        }
+        Update: {
+          activity?: string
+          actual_duration?: number
+          actual_start?: string | null
+          created_at?: string
+          id?: string
+          owner?: string
+          percent_complete?: number
+          plan_duration?: number
+          plan_start?: string
+          position?: number
+          project_id?: string
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rk_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rk_project"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rk_tasks_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "rk_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
