@@ -30,8 +30,8 @@ export function EmailGate({ children }: { children: ReactNode }) {
     }
 
     try {
-      // @ts-ignore - check_access is a new RPC not yet in generated types
-      const { data: hasAccess, error: rpcErr } = await supabase.rpc("check_access", {
+      // @ts-ignore
+      const { data: hasAccess, error: rpcErr } = await (supabase as any).rpc("check_access", {
         p_email: saved,
       });
 
@@ -52,7 +52,7 @@ export function EmailGate({ children }: { children: ReactNode }) {
     const email = emailInput.trim().toLowerCase();
 
     // @ts-ignore
-    const { data: hasAccess, error: fetchErr } = await supabase.rpc("check_access", {
+    const { data: hasAccess, error: fetchErr } = await (supabase as any).rpc("check_access", {
       p_email: email,
     });
 

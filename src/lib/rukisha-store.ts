@@ -94,13 +94,12 @@ async function loadAll(id?: string) {
   const userEmail = email.trim().toLowerCase();
 
   // @ts-ignore
-  await supabase.rpc("set_user_context", { p_email: userEmail });
+  await (supabase as any).rpc("set_user_context", { p_email: userEmail });
 
   localStorage.setItem("app.user_email", userEmail);
 
   // 1. Check if user is a super admin
-  // @ts-ignore
-  const { data: adminCheck } = await supabase
+  const { data: adminCheck } = await (supabase as any)
     .from("rk_superadmins")
     .select("email")
     .eq("email", userEmail)
