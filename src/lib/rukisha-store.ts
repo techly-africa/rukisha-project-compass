@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjectState, Section, Task, Stakeholder, ProjectInfo } from "./rukisha-types";
+import { toast } from "sonner";
 
 export type { ProjectInfo };
 
@@ -259,7 +260,14 @@ export const actions = {
       ...s,
       stakeholders: s.stakeholders.map((st) => (st.id === id ? { ...st, ...patch } : st)),
     }));
-    await supabase.from("rk_stakeholders").update(patch).eq("id", id);
+    try {
+      const { error } = await supabase.from("rk_stakeholders").update(patch).eq("id", id);
+      if (error) throw error;
+    } catch (err) {
+      console.error("Stakeholder update failed:", err);
+      toast.error("Failed to save stakeholder change");
+      loadAll(); // Re-sync
+    }
   },
   async deleteStakeholder(id: string) {
     setState((s: ProjectState) => ({
@@ -283,28 +291,42 @@ export const actions = {
     if (patch.percentComplete !== undefined) dbPatch.percent_complete = patch.percentComplete;
     if (patch.sectionId !== undefined) dbPatch.section_id = patch.sectionId;
     if (Object.keys(dbPatch).length === 0) return;
-    await supabase.from("rk_tasks").update(dbPatch).eq("id", id);
+    try {
+      const { error } = await supabase.from("rk_tasks").update(dbPatch).eq("id", id);
+      if (error) throw error;
+    } catch (err) {
+      console.error("Task update failed:", err);
+      toast.error("Failed to save task change");
+      loadAll(); // Re-sync
+    }
   },
   async addTask(sectionId: string) {
     if (!projectId) return;
     const position = state.tasks.length;
-    const { data } = await supabase
-      .from("rk_tasks")
-      .insert({
-        project_id: projectId,
-        section_id: sectionId,
-        activity: "New task",
-        owner: "",
-        plan_start: todayISO(),
-        plan_duration: 5,
-        actual_duration: 0,
-        percent_complete: 0,
-        position,
-      })
-      .select()
-      .single();
-    if (data) {
-      setState((s: ProjectState) => ({ ...s, tasks: [...s.tasks, mapTask(data as DbTask)] }));
+    try {
+      const { data, error } = await supabase
+        .from("rk_tasks")
+        .insert({
+          project_id: projectId,
+          section_id: sectionId,
+          activity: "New task",
+          owner: "",
+          plan_start: todayISO(),
+          plan_duration: 5,
+          actual_duration: 0,
+          percent_complete: 0,
+          position,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setState((s: ProjectState) => ({ ...s, tasks: [...s.tasks, mapTask(data as DbTask)] }));
+      }
+    } catch (err) {
+      console.error("Task creation failed:", err);
+      toast.error("Failed to add mission task");
     }
   },
   async deleteTask(id: string) {
