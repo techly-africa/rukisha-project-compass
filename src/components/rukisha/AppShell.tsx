@@ -88,7 +88,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
           </div>
         </header>
-        <main className="flex-1 min-w-0">{children}</main>
+        <main className="flex-1 min-w-0">
+          {mounted && isLoaded ? (
+            children
+          ) : (
+            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+              Loading project from Lovable Cloud…
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
