@@ -390,6 +390,10 @@ export const actions = {
     await loadAll();
   },
   async refreshProjects() {
+    // Reset guards so this works correctly after a fresh login
+    noEmailHandled = false;
+    loaded = false;
+    loadingPromise = null;
     await loadAll();
   },
   async archiveProject(id: string, archive: boolean = true) {
@@ -408,17 +412,18 @@ export const actions = {
   async switchProject(id: string) {
     await loadAll(id);
   },
-  initialize() {
-    // Reset guards so post-login calls always re-fetch with the saved email
-    noEmailHandled = false;
-    loaded = false;
-    loadingPromise = null;
-    loadAll();
-  },
   importState(_next: ProjectState) {
     console.warn("importState is disabled when synced to Cloud.");
   },
 };
+
+/** Call after login to force a fresh project fetch with the saved email. */
+export function initializeStore() {
+  noEmailHandled = false;
+  loaded = false;
+  loadingPromise = null;
+  loadAll();
+}
 
 export function dateAdd(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00");

@@ -56,7 +56,8 @@ export function EmailGate({ children }: { children: ReactNode }) {
       if (hasAccess) {
         localStorage.setItem(EMAIL_KEY, email);
         // Trigger the store to load projects now that the email is saved
-        actions.initialize();
+        actions.refreshProjects();
+
         setGateState("allowed");
       } else {
         setError("This email is not on the project team. Contact your project admin.");
