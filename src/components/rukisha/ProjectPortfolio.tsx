@@ -127,10 +127,14 @@ export function ProjectPortfolio() {
 }
 
 function ProjectCard({ project }: { project: ProjectInfo }) {
-  const isSuperAdmin = localStorage.getItem("rk-email")?.toLowerCase() === "cbienaime@rukisha.co.rw";
+  const state = useProject();
   const [showDelete, setShowDelete] = useState(false);
 
   const handleDelete = async () => {
+    if (!state.isSuperAdmin) {
+      toast.error("Only Super Admins can delete projects.");
+      return;
+    }
     try {
       const { error } = await supabase.from("rk_project").delete().eq("id", project.id);
       if (error) throw error;
@@ -180,7 +184,7 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
             </div>
           </div>
 
-          {isSuperAdmin && (
+          {state.isSuperAdmin && (
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"

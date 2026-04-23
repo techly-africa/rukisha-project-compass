@@ -202,8 +202,7 @@ export function SetupPage() {
   }
 
   async function handleDelete() {
-    const isSuperAdmin = localStorage.getItem("rk-email")?.toLowerCase() === "cbienaime@rukisha.co.rw";
-    if (!isSuperAdmin) {
+    if (!state.isSuperAdmin) {
       setError("Only Super Admins can delete projects.");
       return;
     }

@@ -47,4 +47,6 @@ export interface ProjectState {
   tasks: Task[];
   darkMode: boolean;
   userProjects: ProjectInfo[];
+  userEmail: string | null;
+  isSuperAdmin: boolean;
 }

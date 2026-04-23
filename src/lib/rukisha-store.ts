@@ -23,6 +23,8 @@ const emptyState: ProjectState = {
   tasks: [],
   darkMode: false,
   userProjects: [],
+  userEmail: null,
+  isSuperAdmin: false,
 };
 
 let state: ProjectState = emptyState;
@@ -113,8 +115,16 @@ async function loadAll(id?: string) {
     isArchived: p.is_archived
   }));
 
+  // 1.5 Determine Super Admin status
+  const { data: adminData } = await (supabase as any)
+    .from("rk_superadmins")
+    .select("email")
+    .eq("email", userEmail)
+    .maybeSingle();
+  const isSuperAdmin = !!adminData;
+
   if (projectList.length === 0) {
-    setState((s) => ({ ...s, userProjects: [], id: null }));
+    setState((s) => ({ ...s, userProjects: [], id: null, userEmail, isSuperAdmin }));
     return;
   }
 
@@ -156,6 +166,8 @@ async function loadAll(id?: string) {
     tasks: (tasks || []).map(mapTask),
     darkMode: localDark,
     userProjects: projectList,
+    userEmail,
+    isSuperAdmin,
   };
   loaded = true;
   emit();
@@ -358,7 +370,7 @@ export const actions = {
     await loadAll();
   },
   async archiveProject(id: string, archive: boolean = true) {
-    await supabase.from("rk_project").update({ is_archived: archive }).eq("id", id);
+    await (supabase as any).from("rk_project").update({ is_archived: archive }).eq("id", id);
     await loadAll();
   },
   async createProject(name: string) {
