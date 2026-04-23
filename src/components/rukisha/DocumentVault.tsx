@@ -11,11 +11,22 @@ import {
   FileCode, 
   MoreHorizontal,
   Search,
-  HardDrive
+  HardDrive,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface DocInfo {
   id: string;
@@ -33,6 +44,7 @@ export function DocumentVault() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
+  const [docToDelete, setDocToDelete] = useState<DocInfo | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -74,14 +86,14 @@ export function DocumentVault() {
 
       if (storageErr) throw storageErr;
 
-      // 2. Insert Metadata
-      const { error: dbErr } = await (supabase as any).from("rk_documents").insert({
-        project_id: state.id,
-        name: file.name,
-        storage_path: path,
-        content_type: file.type,
-        size_bytes: file.size,
-        created_by: userEmail
+      // 2. Insert Metadata via RPC to bypass RLS recursion/session loss
+      const { error: dbErr } = await (supabase as any).rpc("vault_document", {
+        p_project_id: state.id,
+        p_name: file.name,
+        p_path: path,
+        p_type: file.type,
+        p_size: file.size,
+        p_email: userEmail
       });
 
       if (dbErr) throw dbErr;
@@ -120,8 +132,6 @@ export function DocumentVault() {
   };
 
   const deleteFile = async (doc: DocInfo) => {
-    if (!confirm("Are you sure you want to remove this document from the vault?")) return;
-
     try {
       // 1. Delete from storage
       await supabase.storage.from("project_vault").remove([doc.storage_path]);
@@ -134,6 +144,8 @@ export function DocumentVault() {
     } catch (err) {
       console.error(err);
       toast.error("Failed to delete document");
+    } finally {
+      setDocToDelete(null);
     }
   };
 
@@ -266,7 +278,7 @@ export function DocumentVault() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => deleteFile(doc)}
+                          onClick={() => setDocToDelete(doc)}
                           className="h-8 w-8 hover:text-red-500"
                           title="Delete"
                         >
@@ -281,6 +293,30 @@ export function DocumentVault() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!docToDelete} onOpenChange={(open) => !open && setDocToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Remove Document
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to PERMANENTLY remove <span className="text-[var(--rk-navy)] font-bold">"{docToDelete?.name}"</span> from the high-security vault?
+              This action will delete the physical file from storage and its metadata records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Document</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => docToDelete && deleteFile(docToDelete)}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Confirm Removal
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

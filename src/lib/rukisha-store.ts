@@ -2,6 +2,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjectState, Section, Task, Stakeholder, ProjectInfo } from "./rukisha-types";
 
+export type { ProjectInfo };
+
 function todayISO(offset = 0): string {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -93,57 +95,38 @@ async function loadAll(id?: string) {
   if (!email) return;
   const userEmail = email.trim().toLowerCase();
 
-  // @ts-ignore
-  await (supabase as any).rpc("set_user_context", { p_email: userEmail });
+  // 1. Fetch available projects via secure RPC
+  const { data: projectListRaw, error: listErr } = await (supabase as any).rpc("get_user_projects", {
+    p_email: userEmail
+  });
 
-  localStorage.setItem("app.user_email", userEmail);
-
-  // 1. Check if user is a super admin
-  const { data: adminCheck } = await (supabase as any)
-    .from("rk_superadmins")
-    .select("email")
-    .eq("email", userEmail)
-    .maybeSingle();
-
-  const isSuperAdmin = !!adminCheck;
-
-  let projectIds: string[] = [];
-
-  if (isSuperAdmin) {
-    // Super admins see all projects from the RLS-allowed pool (which is all of them)
-    const { data: allProjects } = await supabase.from("rk_project").select("id");
-    if (allProjects) projectIds = allProjects.map((p) => p.id);
-  } else {
-    // Regular users see only projects they are team members of
-    const { data: teamProjects } = await supabase
-      .from("rk_team")
-      .select("project_id")
-      .eq("email", userEmail);
-    if (teamProjects) projectIds = teamProjects.map((tp) => tp.project_id);
-  }
-
-  if (projectIds.length === 0) {
-    setState((s) => ({ ...s, userProjects: [] }));
+  if (listErr) {
+    console.error("Discovery failed:", listErr);
     return;
   }
 
-  const { data: projects } = await supabase
-    .from("rk_project")
-    .select("*")
-    .in("id", projectIds)
-    .order("updated_at", { ascending: false });
-
-  const projectList: ProjectInfo[] = (projects || []).map((p) => ({
+  const projectList: ProjectInfo[] = (projectListRaw || []).map((p: any) => ({
     id: p.id,
     name: p.name,
     goLiveDate: p.go_live_date,
     updatedAt: p.updated_at,
+    isArchived: p.is_archived
   }));
+
+  if (projectList.length === 0) {
+    setState((s) => ({ ...s, userProjects: [], id: null }));
+    return;
+  }
 
   // 2. Select target project
   let targetId = id;
   if (!targetId && projectList.length > 0) {
-    targetId = projectList[0].id;
+    // If we have an active ID in state, check if it's still available
+    if (state.id && projectList.find(p => p.id === state.id)) {
+      targetId = state.id;
+    } else {
+      targetId = projectList[0].id;
+    }
   }
 
   if (!targetId) {
@@ -152,20 +135,15 @@ async function loadAll(id?: string) {
   }
 
   // 3. Fetch specific project data
-  const { data: project, error: prjErr } = await supabase
-    .from("rk_project")
-    .select("*")
-    .eq("id", targetId)
-    .single();
-
-  if (prjErr || !project) return;
-  projectId = project.id;
-
-  const [{ data: sections }, { data: tasks }, { data: stakeholders }] = await Promise.all([
-    supabase.from("rk_sections").select("*").eq("project_id", projectId!).order("position"),
-    supabase.from("rk_tasks").select("*").eq("project_id", projectId!).order("position"),
-    supabase.from("rk_stakeholders").select("*").eq("project_id", projectId!).order("name"),
+  projectId = targetId;
+  const [{ data: project }, { data: sections }, { data: tasks }, { data: stakeholders }] = await Promise.all([
+    supabase.from("rk_project").select("*").eq("id", targetId).single(),
+    supabase.from("rk_sections").select("*").eq("project_id", targetId).order("position"),
+    supabase.from("rk_tasks").select("*").eq("project_id", targetId).order("position"),
+    supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
   ]);
+
+  if (!project) return;
 
   const localDark = typeof window !== "undefined" ? localStorage.getItem("rk-dark") === "1" : false;
 
@@ -376,6 +354,13 @@ export const actions = {
     ]);
     await loadAll();
   },
+  async refreshProjects() {
+    await loadAll();
+  },
+  async archiveProject(id: string, archive: boolean = true) {
+    await supabase.from("rk_project").update({ is_archived: archive }).eq("id", id);
+    await loadAll();
+  },
   async createProject(name: string) {
     const email = localStorage.getItem("rk-email")?.toLowerCase();
     const userName = email?.split("@")[0] || "Owner";
@@ -400,7 +385,7 @@ export const actions = {
     await loadAll(id);
   },
   importState(_next: ProjectState) {
-    console.warn("importState is disabled when synced to Lovable Cloud.");
+    console.warn("importState is disabled when synced to Cloud.");
   },
 };
 

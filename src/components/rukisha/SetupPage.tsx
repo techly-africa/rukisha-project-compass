@@ -1,10 +1,19 @@
 import { useState, useEffect } from "react";
-import { Compass } from "lucide-react";
+import { Compass, Trash2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { actions, useProject } from "@/lib/rukisha-store";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TeamRow {
   id?: string;
@@ -71,6 +80,7 @@ export function SetupPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showDelete, setShowDelete] = useState(false);
 
   useEffect(() => {
     if (state.id) {
@@ -198,14 +208,10 @@ export function SetupPage() {
       return;
     }
 
-    if (!confirm("Are you sure you want to PERMANENTLY delete this project and all its data?")) {
-      return;
-    }
-
     setSaving(true);
     try {
       if (!projectId) throw new Error("No project ID found");
-      const { error: delErr } = await supabase.from("rk_project").delete().eq("id", projectId);
+      const { error: delErr } = await (supabase as any).from("rk_project").delete().eq("id", projectId);
       if (delErr) throw delErr;
       
       toast.success("Project deleted successfully");
@@ -214,6 +220,7 @@ export function SetupPage() {
       console.error(err);
       setError("Failed to delete project. Ensure you are authorized.");
       setSaving(false);
+      setShowDelete(false);
     }
   }
 
@@ -380,7 +387,7 @@ export function SetupPage() {
             {isEditing && (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => setShowDelete(true)}
                 disabled={saving}
                 className="rounded-md border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
               >
@@ -398,6 +405,27 @@ export function SetupPage() {
             )}
           </div>
         </form>
+
+        <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                Permanent Mission Destruction
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to PERMANENTLY delete this project and all its platform data? 
+                This action cannot be undone and will revoke access for all team members.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Abort Deletion</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">
+                Confirm Destruction
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );

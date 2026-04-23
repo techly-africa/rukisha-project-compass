@@ -282,7 +282,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             children
           ) : (
             <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-              Loading project from Lovable Cloud…
+              Loading...
             </div>
           )}
         </main>

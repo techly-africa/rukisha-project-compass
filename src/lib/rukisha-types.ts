@@ -35,6 +35,7 @@ export interface ProjectInfo {
   name: string;
   goLiveDate: string;
   updatedAt: string;
+  isArchived?: boolean;
 }
 
 export interface ProjectState {
