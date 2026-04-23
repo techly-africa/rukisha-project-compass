@@ -15,12 +15,12 @@ export function EmailGate({ children }: { children: ReactNode }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const isSetupRoute = location.pathname === "/setup";
+  // We remove the static setup route exclusion to ensure global coverage
+  // A Super Admin can always access through the gate anyway
 
   useEffect(() => {
-    if (isSetupRoute) return;
     checkAccess();
-  }, [isSetupRoute]);
+  }, []);
 
   async function checkAccess() {
     const saved = localStorage.getItem(EMAIL_KEY)?.toLowerCase();
@@ -65,7 +65,7 @@ export function EmailGate({ children }: { children: ReactNode }) {
     setSubmitting(false);
   }
 
-  if (isSetupRoute) return <>{children}</>;
+  // No exclusions - all routes are gated
 
   if (gateState === "loading") {
     return (
@@ -84,16 +84,16 @@ export function EmailGate({ children }: { children: ReactNode }) {
           <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--rk-navy)] text-[var(--rk-gold)] shadow-sm">
             <Compass className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Compass</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Project management for modern teams.</p>
+          <h1 className="text-2xl font-bold tracking-tight">Avel Compass</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Premium project portfolio for Rukisha.</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold">Access Project</h2>
+              <h2 className="text-lg font-semibold">Secure Access</h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Enter your whitelisted email to continue.
+                Enter your whitelisted email to receive access to the Avel Portfolio.
               </p>
             </div>
 

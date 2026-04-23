@@ -65,3 +65,5 @@ export const getRouter = () => {
 
   return router;
 };
+
+export { createRouter };

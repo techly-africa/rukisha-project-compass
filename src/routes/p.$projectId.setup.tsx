@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from '@tanstack/react-router'
+import { AppShell } from "@/components/rukisha/AppShell";
 import { SetupPage } from "@/components/rukisha/SetupPage";
 
 export const Route = createFileRoute("/p/$projectId/setup")({
@@ -8,5 +9,9 @@ export const Route = createFileRoute("/p/$projectId/setup")({
       { name: "description", content: "Set up your project and define team access." },
     ],
   }),
-  component: SetupPage,
+  component: () => (
+    <AppShell>
+      <SetupPage />
+    </AppShell>
+  ),
 });

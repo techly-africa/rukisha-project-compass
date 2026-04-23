@@ -12,7 +12,13 @@ export const Route = createFileRoute("/")({
   component: PortfolioPage,
 });
 
+import { AppShell } from "@/components/rukisha/AppShell";
+
 function PortfolioPage() {
   useHydratedProject(); // Load user projects
-  return <ProjectPortfolio />;
+  return (
+    <AppShell>
+      <ProjectPortfolio />
+    </AppShell>
+  );
 }

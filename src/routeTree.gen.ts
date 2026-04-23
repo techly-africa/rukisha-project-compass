@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PProjectIdRouteImport } from './routes/p.$projectId'
 import { Route as PProjectIdIndexRouteImport } from './routes/p.$projectId.index'
+import { Route as PProjectIdVaultRouteImport } from './routes/p.$projectId.vault'
 import { Route as PProjectIdSetupRouteImport } from './routes/p.$projectId.setup'
 import { Route as PProjectIdDashboardRouteImport } from './routes/p.$projectId.dashboard'
 
@@ -30,6 +31,11 @@ const PProjectIdIndexRoute = PProjectIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PProjectIdRoute,
 } as any)
+const PProjectIdVaultRoute = PProjectIdVaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
+  getParentRoute: () => PProjectIdRoute,
+} as any)
 const PProjectIdSetupRoute = PProjectIdSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
@@ -46,12 +52,14 @@ export interface FileRoutesByFullPath {
   '/p/$projectId': typeof PProjectIdRouteWithChildren
   '/p/$projectId/dashboard': typeof PProjectIdDashboardRoute
   '/p/$projectId/setup': typeof PProjectIdSetupRoute
+  '/p/$projectId/vault': typeof PProjectIdVaultRoute
   '/p/$projectId/': typeof PProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/p/$projectId/dashboard': typeof PProjectIdDashboardRoute
   '/p/$projectId/setup': typeof PProjectIdSetupRoute
+  '/p/$projectId/vault': typeof PProjectIdVaultRoute
   '/p/$projectId': typeof PProjectIdIndexRoute
 }
 export interface FileRoutesById {
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   '/p/$projectId': typeof PProjectIdRouteWithChildren
   '/p/$projectId/dashboard': typeof PProjectIdDashboardRoute
   '/p/$projectId/setup': typeof PProjectIdSetupRoute
+  '/p/$projectId/vault': typeof PProjectIdVaultRoute
   '/p/$projectId/': typeof PProjectIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -69,15 +78,22 @@ export interface FileRouteTypes {
     | '/p/$projectId'
     | '/p/$projectId/dashboard'
     | '/p/$projectId/setup'
+    | '/p/$projectId/vault'
     | '/p/$projectId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/p/$projectId/dashboard' | '/p/$projectId/setup' | '/p/$projectId'
+  to:
+    | '/'
+    | '/p/$projectId/dashboard'
+    | '/p/$projectId/setup'
+    | '/p/$projectId/vault'
+    | '/p/$projectId'
   id:
     | '__root__'
     | '/'
     | '/p/$projectId'
     | '/p/$projectId/dashboard'
     | '/p/$projectId/setup'
+    | '/p/$projectId/vault'
     | '/p/$projectId/'
   fileRoutesById: FileRoutesById
 }
@@ -109,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PProjectIdIndexRouteImport
       parentRoute: typeof PProjectIdRoute
     }
+    '/p/$projectId/vault': {
+      id: '/p/$projectId/vault'
+      path: '/vault'
+      fullPath: '/p/$projectId/vault'
+      preLoaderRoute: typeof PProjectIdVaultRouteImport
+      parentRoute: typeof PProjectIdRoute
+    }
     '/p/$projectId/setup': {
       id: '/p/$projectId/setup'
       path: '/setup'
@@ -129,12 +152,14 @@ declare module '@tanstack/react-router' {
 interface PProjectIdRouteChildren {
   PProjectIdDashboardRoute: typeof PProjectIdDashboardRoute
   PProjectIdSetupRoute: typeof PProjectIdSetupRoute
+  PProjectIdVaultRoute: typeof PProjectIdVaultRoute
   PProjectIdIndexRoute: typeof PProjectIdIndexRoute
 }
 
 const PProjectIdRouteChildren: PProjectIdRouteChildren = {
   PProjectIdDashboardRoute: PProjectIdDashboardRoute,
   PProjectIdSetupRoute: PProjectIdSetupRoute,
+  PProjectIdVaultRoute: PProjectIdVaultRoute,
   PProjectIdIndexRoute: PProjectIdIndexRoute,
 }
 
