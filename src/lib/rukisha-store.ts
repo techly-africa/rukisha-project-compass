@@ -5,13 +5,28 @@ import { toast } from "sonner";
 
 export type { ProjectInfo };
 
-function todayISO(offset = 0): string {
+/**
+ * Platform Global State Controllers
+ * Moved to top-level to ensure universal scope availability across all mission modules.
+ */
+let loadingPromise: Promise<void> | null = null;
+let currentChannel: any = null;
+let state: ProjectState;
+let projectId: string | null = null;
+let loaded = false;
+let userEmail: string | null = null;
+let isSuperAdmin = false;
+let projectList: ProjectInfo[] = [];
+// Prevents the no-email path from calling emit() on every re-render
+let noEmailHandled = false;
+
+export function todayISO(offset = 0): string {
   const d = new Date();
   d.setDate(d.getDate() + offset);
   return d.toISOString().slice(0, 10);
 }
 
-function uid(): string {
+export function uid(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
@@ -28,9 +43,9 @@ const emptyState: ProjectState = {
   isSuperAdmin: false,
 };
 
-let state: ProjectState = emptyState;
-let projectId: string | null = null;
-let loaded = false;
+state = emptyState;
+
+const projectCache = new Map<string, ProjectState>();
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -89,113 +104,147 @@ function mapStakeholder(s: DbStakeholder): Stakeholder {
   return { id: s.id, name: s.name, role: s.role };
 }
 
-// --- Load + realtime ---
+// --- Load + Realtime ---
 async function loadAll(id?: string) {
-  const email = (
-    typeof window !== "undefined" ? localStorage.getItem("rk-email") : null
-  )?.toLowerCase();
+  if (loadingPromise && !id) return loadingPromise;
+  
+  loadingPromise = (async () => {
+    const email = (
+      typeof window !== "undefined" ? localStorage.getItem("rk-email") : null
+    )?.toLowerCase();
 
-  if (!email) return;
-  const userEmail = email.trim().toLowerCase();
-
-  // 1. Fetch available projects via secure RPC
-  const { data: projectListRaw, error: listErr } = await (supabase as any).rpc("get_user_projects", {
-    p_email: userEmail
-  });
-
-  if (listErr) {
-    console.error("Discovery failed:", listErr);
-    return;
-  }
-
-  const projectList: ProjectInfo[] = (projectListRaw || []).map((p: any) => ({
-    id: p.id,
-    name: p.name,
-    goLiveDate: p.go_live_date,
-    updatedAt: p.updated_at,
-    isArchived: p.is_archived,
-    progress: Number(p.progress || 0)
-  }));
-
-  // 1.5 Determine Super Admin status
-  const { data: adminData } = await (supabase as any)
-    .from("rk_superadmins")
-    .select("email")
-    .eq("email", userEmail)
-    .maybeSingle();
-  const isSuperAdmin = !!adminData;
-
-  if (projectList.length === 0) {
-    setState((s) => ({ ...s, userProjects: [], id: null, userEmail, isSuperAdmin }));
-    return;
-  }
-
-  // 2. Select target project
-  let targetId = id;
-  if (!targetId && projectList.length > 0) {
-    // If we have an active ID in state, check if it's still available
-    if (state.id && projectList.find(p => p.id === state.id)) {
-      targetId = state.id;
-    } else {
-      targetId = projectList[0].id;
+    if (!email) {
+      // Guard: only signal "no session" once, not on every re-render
+      if (!noEmailHandled) {
+        noEmailHandled = true;
+        loaded = true;
+        emit();
+      }
+      return;
     }
-  }
+    noEmailHandled = false; // Reset if email appears
+    const normalized = email.trim().toLowerCase();
+    
+    if (userEmail === normalized && loaded && !id) return;
+    
+    userEmail = normalized;
 
-  if (!targetId) {
-    setState((s) => ({ ...s, userProjects: projectList }));
-    return;
-  }
+    const { data: projectListRaw, error: listErr } = await (supabase as any).rpc("get_user_projects", {
+      p_email: userEmail
+    });
 
-  // 3. Fetch specific project data
-  projectId = targetId;
-  const [{ data: project }, { data: sections }, { data: tasks }, { data: stakeholders }] = await Promise.all([
-    supabase.from("rk_project").select("*").eq("id", targetId).single(),
-    supabase.from("rk_sections").select("*").eq("project_id", targetId).order("position"),
-    supabase.from("rk_tasks").select("*").eq("project_id", targetId).order("position"),
-    supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
-  ]);
+    if (listErr) {
+      console.error("Discovery failed:", listErr);
+      return;
+    }
 
-  if (!project) return;
+    projectList = (projectListRaw || []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      goLiveDate: p.go_live_date,
+      updatedAt: p.updated_at,
+      isArchived: p.is_archived,
+      progress: Number(p.progress || 0)
+    }));
 
-  const localDark = typeof window !== "undefined" ? localStorage.getItem("rk-dark") === "1" : false;
+    const { data: adminData } = await (supabase as any)
+      .from("rk_superadmins")
+      .select("email")
+      .eq("email", userEmail)
+      .maybeSingle();
+    isSuperAdmin = !!adminData;
 
-  state = {
-    id: project.id,
-    projectName: project.name,
-    goLiveDate: project.go_live_date,
-    stakeholders: (stakeholders || []).map(mapStakeholder),
-    sections: (sections || []).map(mapSection),
-    tasks: (tasks || []).map(mapTask),
-    darkMode: localDark,
-    userProjects: projectList,
-    userEmail,
-    isSuperAdmin,
-  };
-  loaded = true;
-  emit();
+    if (projectList.length === 0 && !listErr) {
+      setState((s) => ({ ...s, userProjects: [], id: null, userEmail, isSuperAdmin }));
+      loaded = true;
+      emit();
+      return;
+    }
+
+    let targetId = id || projectId;
+    if (!targetId && projectList.length > 0) {
+      if (state.id && projectList.find((p: any) => p.id === state.id)) {
+        targetId = state.id;
+      } else {
+        targetId = projectList[0].id;
+      }
+    }
+
+    if (!targetId) {
+      setState((s) => ({ ...s, userProjects: projectList }));
+      return;
+    }
+
+    projectId = targetId;
+
+    const cached = projectCache.get(targetId);
+    if (cached && !id) {
+      state = { ...cached, userProjects: projectList, userEmail, isSuperAdmin };
+      loaded = true;
+      emit();
+    }
+
+    const [{ data: project }, { data: sections }, { data: tasks }, { data: stakeholders }] = await Promise.all([
+      supabase.from("rk_project").select("*").eq("id", targetId).single(),
+      supabase.from("rk_sections").select("*").eq("project_id", targetId).order("position"),
+      supabase.from("rk_tasks").select("*").eq("project_id", targetId).order("position"),
+      supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
+    ]);
+
+    if (!project) return;
+
+    const localDark = typeof window !== "undefined" ? localStorage.getItem("rk-dark") === "1" : false;
+
+    const newState: ProjectState = {
+      id: project.id,
+      projectName: project.name,
+      goLiveDate: project.go_live_date,
+      stakeholders: (stakeholders || []).map(mapStakeholder),
+      sections: (sections || []).map(mapSection),
+      tasks: (tasks || []).map(mapTask),
+      darkMode: localDark,
+      userProjects: projectList,
+      userEmail,
+      isSuperAdmin,
+    };
+
+    projectCache.set(project.id, newState);
+    state = newState;
+    loaded = true;
+    emit();
+  })().finally(() => {
+    loadingPromise = null;
+  });
+  
+  return loadingPromise;
 }
 
-let channelStarted = false;
 function startRealtime() {
-  if (channelStarted) return;
-  channelStarted = true;
-  supabase
-    .channel("rukisha-sync")
-    .on("postgres_changes", { event: "*", schema: "public", table: "rk_project" }, () => loadAll())
-    .on("postgres_changes", { event: "*", schema: "public", table: "rk_sections" }, () => loadAll())
-    .on("postgres_changes", { event: "*", schema: "public", table: "rk_tasks" }, () => loadAll())
-    .on("postgres_changes", { event: "*", schema: "public", table: "rk_stakeholders" }, () =>
-      loadAll(),
-    )
+  if (!projectId) return;
+  
+  if (currentChannel) {
+    supabase.removeChannel(currentChannel);
+  }
+
+  currentChannel = supabase
+    .channel(`project-${projectId}`)
+    .on("postgres_changes", { 
+        event: "*", 
+        schema: "public", 
+        table: "rk_tasks", 
+        filter: `project_id=eq.${projectId}` 
+    }, () => loadAll())
+    .on("postgres_changes", { 
+        event: "*", 
+        schema: "public", 
+        table: "rk_project", 
+        filter: `id=eq.${projectId}` 
+    }, () => loadAll())
     .subscribe();
 }
 
 export function useProject(): ProjectState {
-  return useSyncExternalStore(
-    subscribe,
-    () => state,
-    () => emptyState,
-  );
+  return useSyncExternalStore(subscribe, () => state, () => emptyState);
 }
 
 export function useHydratedProject(id?: string) {
@@ -209,30 +258,20 @@ export function useHydratedProject(id?: string) {
 }
 
 export function useIsLoaded(): boolean {
-  return useSyncExternalStore(
-    subscribe,
-    () => loaded,
-    () => false,
-  );
+  return useSyncExternalStore(subscribe, () => loaded, () => false);
 }
 
-// --- Mutations ---
+// --- Combined Actions ---
 export const actions = {
   async setProjectName(name: string) {
     if (!projectId) return;
     setState((s: ProjectState) => ({ ...s, projectName: name }));
-    await supabase
-      .from("rk_project")
-      .update({ name, updated_at: new Date().toISOString() })
-      .eq("id", projectId);
+    await supabase.from("rk_project").update({ name, updated_at: new Date().toISOString() }).eq("id", projectId);
   },
   async setGoLive(date: string) {
     if (!projectId) return;
     setState((s: ProjectState) => ({ ...s, goLiveDate: date }));
-    await supabase
-      .from("rk_project")
-      .update({ go_live_date: date, updated_at: new Date().toISOString() })
-      .eq("id", projectId);
+    await supabase.from("rk_project").update({ go_live_date: date, updated_at: new Date().toISOString() }).eq("id", projectId);
   },
   toggleDark() {
     setState((s: ProjectState) => {
@@ -243,45 +282,27 @@ export const actions = {
   },
   async addStakeholder(name: string, role: string) {
     if (!projectId) return;
-    const { data } = await supabase
-      .from("rk_stakeholders")
-      .insert({ project_id: projectId, name, role })
-      .select()
-      .single();
-    if (data) {
-      setState((s: ProjectState) => ({
-        ...s,
-        stakeholders: [...s.stakeholders, mapStakeholder(data)],
-      }));
-    }
+    const { data } = await supabase.from("rk_stakeholders").insert({ project_id: projectId, name, role }).select().single();
+    if (data) setState((s) => ({ ...s, stakeholders: [...s.stakeholders, mapStakeholder(data)] }));
   },
   async updateStakeholder(id: string, patch: Partial<Stakeholder>) {
-    setState((s: ProjectState) => ({
-      ...s,
-      stakeholders: s.stakeholders.map((st) => (st.id === id ? { ...st, ...patch } : st)),
-    }));
+    setState((s) => ({ ...s, stakeholders: s.stakeholders.map((st) => (st.id === id ? { ...st, ...patch } : st)) }));
     try {
       const { error } = await supabase.from("rk_stakeholders").update(patch).eq("id", id);
       if (error) throw error;
     } catch (err) {
       console.error("Stakeholder update failed:", err);
       toast.error("Failed to save stakeholder change");
-      loadAll(); // Re-sync
+      loadAll();
     }
   },
   async deleteStakeholder(id: string) {
-    setState((s: ProjectState) => ({
-      ...s,
-      stakeholders: s.stakeholders.filter((st) => st.id !== id),
-    }));
+    setState((s) => ({ ...s, stakeholders: s.stakeholders.filter((st) => st.id !== id) }));
     await supabase.from("rk_stakeholders").delete().eq("id", id);
   },
   async updateTask(id: string, patch: Partial<Task>) {
-    setState((s: ProjectState) => ({
-      ...s,
-      tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
-    }));
-    const dbPatch: Partial<DbTask> = {};
+    setState((s) => ({ ...s, tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
+    const dbPatch: any = {};
     if (patch.activity !== undefined) dbPatch.activity = patch.activity;
     if (patch.owner !== undefined) dbPatch.owner = patch.owner;
     if (patch.planStart !== undefined) dbPatch.plan_start = patch.planStart;
@@ -292,45 +313,47 @@ export const actions = {
     if (patch.sectionId !== undefined) dbPatch.section_id = patch.sectionId;
     if (Object.keys(dbPatch).length === 0) return;
     try {
-      const { error } = await supabase.from("rk_tasks").update(dbPatch).eq("id", id);
+      const { error } = await (supabase as any).rpc("update_task_secure", {
+        p_id: id,
+        p_activity: dbPatch.activity,
+        p_owner: dbPatch.owner,
+        p_plan_start: dbPatch.plan_start,
+        p_plan_duration: dbPatch.plan_duration,
+        p_actual_start: dbPatch.actual_start,
+        p_actual_duration: dbPatch.actual_duration,
+        p_percent_complete: dbPatch.percent_complete,
+        p_section_id: dbPatch.section_id
+      });
       if (error) throw error;
     } catch (err) {
       console.error("Task update failed:", err);
       toast.error("Failed to save task change");
-      loadAll(); // Re-sync
+      loadAll();
     }
   },
   async addTask(sectionId: string) {
     if (!projectId) return;
-    const position = state.tasks.length;
     try {
-      const { data, error } = await supabase
-        .from("rk_tasks")
-        .insert({
-          project_id: projectId,
-          section_id: sectionId,
-          activity: "New task",
-          owner: "",
-          plan_start: todayISO(),
-          plan_duration: 5,
-          actual_duration: 0,
-          percent_complete: 0,
-          position,
-        })
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from("rk_tasks").insert({
+        project_id: projectId,
+        section_id: sectionId,
+        activity: "New task",
+        owner: "",
+        plan_start: todayISO(),
+        plan_duration: 5,
+        actual_duration: 0,
+        percent_complete: 0,
+        position: state.tasks.length,
+      }).select().single();
       if (error) throw error;
-      if (data) {
-        setState((s: ProjectState) => ({ ...s, tasks: [...s.tasks, mapTask(data as DbTask)] }));
-      }
+      if (data) setState((s) => ({ ...s, tasks: [...s.tasks, mapTask(data as DbTask)] }));
     } catch (err) {
       console.error("Task creation failed:", err);
       toast.error("Failed to add mission task");
     }
   },
   async deleteTask(id: string) {
-    setState((s: ProjectState) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== id) }));
+    setState((s) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== id) }));
     await supabase.from("rk_tasks").delete().eq("id", id);
   },
   async moveTask(id: string, direction: -1 | 1) {
@@ -342,42 +365,19 @@ export const actions = {
     const [removed] = tasks.splice(idx, 1);
     tasks.splice(target, 0, removed);
     setState((s: ProjectState) => ({ ...s, tasks }));
-    // Persist new positions
-    await Promise.all(
-      tasks.map((t, i) => supabase.from("rk_tasks").update({ position: i }).eq("id", t.id)),
-    );
+    await Promise.all(tasks.map((t, i) => supabase.from("rk_tasks").update({ position: i }).eq("id", t.id)));
   },
   async addSection(name: string) {
     if (!projectId) return;
-    const position = state.sections.length;
-    const { data } = await supabase
-      .from("rk_sections")
-      .insert({ project_id: projectId, name, color: "#2E75B6", position })
-      .select()
-      .single();
-    if (data)
-      setState((s: ProjectState) => ({
-        ...s,
-        sections: [...s.sections, mapSection(data as DbSection)],
-      }));
+    const { data } = await supabase.from("rk_sections").insert({ project_id: projectId, name, color: "#2E75B6", position: state.sections.length }).select().single();
+    if (data) setState((s) => ({ ...s, sections: [...s.sections, mapSection(data as DbSection)] }));
   },
   async updateSection(id: string, patch: Partial<Section>) {
-    setState((s: ProjectState) => ({
-      ...s,
-      sections: s.sections.map((sec) => (sec.id === id ? { ...sec, ...patch } : sec)),
-    }));
-    const dbPatch: Partial<DbSection> = {};
-    if (patch.name !== undefined) dbPatch.name = patch.name;
-    if (patch.color !== undefined) dbPatch.color = patch.color;
-    if (Object.keys(dbPatch).length === 0) return;
-    await supabase.from("rk_sections").update(dbPatch).eq("id", id);
+    setState((s) => ({ ...s, sections: s.sections.map((sec) => (sec.id === id ? { ...sec, ...patch } : sec)) }));
+    await supabase.from("rk_sections").update(patch).eq("id", id);
   },
   async deleteSection(id: string) {
-    setState((s: ProjectState) => ({
-      ...s,
-      sections: s.sections.filter((sec) => sec.id !== id),
-      tasks: s.tasks.filter((t) => t.sectionId !== id),
-    }));
+    setState((s) => ({ ...s, sections: s.sections.filter((sec) => sec.id !== id), tasks: s.tasks.filter((t) => t.sectionId !== id) }));
     await supabase.from("rk_sections").delete().eq("id", id);
   },
   async reset() {
@@ -398,20 +398,9 @@ export const actions = {
   },
   async createProject(name: string) {
     const email = localStorage.getItem("rk-email")?.toLowerCase();
-    const userName = email?.split("@")[0] || "Owner";
-
-    // 1. Create project
-    const { data: project } = await supabase
-      .from("rk_project")
-      .insert({ name, go_live_date: todayISO(28) })
-      .select()
-      .single();
-
+    const { data: project } = await supabase.from("rk_project").insert({ name, go_live_date: todayISO(28) }).select().single();
     if (project && email) {
-      // 2. Add creator to team
-      await supabase.from("rk_team").insert({ project_id: project.id, email, name: userName });
-
-      // 3. Navigate or reload
+      await supabase.from("rk_team").insert({ project_id: project.id, email, name: email.split("@")[0] });
       await loadAll(project.id);
       return project.id;
     }
@@ -419,12 +408,18 @@ export const actions = {
   async switchProject(id: string) {
     await loadAll(id);
   },
+  initialize() {
+    // Reset guards so post-login calls always re-fetch with the saved email
+    noEmailHandled = false;
+    loaded = false;
+    loadingPromise = null;
+    loadAll();
+  },
   importState(_next: ProjectState) {
     console.warn("importState is disabled when synced to Cloud.");
   },
 };
 
-// --- Derived helpers ---
 export function dateAdd(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00");
   d.setDate(d.getDate() + days);
@@ -453,5 +448,3 @@ export function getTaskStatus(t: Task): {
     return { status: "in_progress", label: "In Progress", tone: "primary" };
   return { status: "not_started", label: "Not Started", tone: "muted" };
 }
-
-export { todayISO, uid };

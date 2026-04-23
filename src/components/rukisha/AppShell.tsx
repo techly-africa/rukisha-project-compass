@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Compass, LogOut } from "lucide-react";
 import { actions, useHydratedProject, useIsLoaded, useProject } from "@/lib/rukisha-store";
 import { toast } from "sonner";
@@ -26,6 +26,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { location } = useRouterState();
   const [mounted, setMounted] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  // Local project name for smooth typing — syncs to store after 600ms idle
+  const [localName, setLocalName] = useState(state.projectName);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep local name in sync when store loads a new project
+  useEffect(() => {
+    setLocalName(state.projectName);
+  }, [state.projectName]);
 
   useEffect(() => {
     setMounted(true);
@@ -248,8 +256,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="no-print sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <input
-              value={state.projectName}
-              onChange={(e) => actions.setProjectName(e.target.value)}
+              value={localName}
+              onChange={(e) => {
+                const val = e.target.value;
+                setLocalName(val);
+                // Debounce: only write to store/DB after 600ms of no typing
+                if (debounceRef.current) clearTimeout(debounceRef.current);
+                debounceRef.current = setTimeout(() => {
+                  actions.setProjectName(val);
+                }, 600);
+              }}
               className="min-w-0 truncate bg-transparent text-base font-semibold outline-none focus:ring-2 focus:ring-ring rounded px-2 py-1"
             />
           </div>

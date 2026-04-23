@@ -18,7 +18,7 @@ declare
   v_is_super boolean;
 begin
   -- Check if super admin
-  select exists(select 1 from rk_superadmins where email = p_email) into v_is_super;
+  select exists(select 1 from rk_superadmins where lower(email) = lower(p_email)) into v_is_super;
   
   if v_is_super then
     return query 
@@ -41,8 +41,8 @@ begin
       p.is_archived,
       coalesce((select round(avg(percent_complete)) from rk_tasks where project_id = p.id), 0)::numeric as progress
     from rk_project p
-    join rk_team t on t.project_id = p.id
-    where t.email = p_email
+    where p.id in (select project_id from rk_team where lower(email) = lower(p_email))
+    and p.is_archived = false
     order by p.updated_at desc;
   end if;
 end;

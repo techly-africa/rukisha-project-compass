@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { Compass } from "lucide-react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { actions } from "@/lib/rukisha-store";
 
 const EMAIL_KEY = "rk-email";
 
@@ -24,25 +25,16 @@ export function EmailGate({ children }: { children: ReactNode }) {
 
   async function checkAccess() {
     const saved = localStorage.getItem(EMAIL_KEY)?.toLowerCase();
-    if (!saved) {
-      setGateState("prompt");
+
+    // Optimistic access: if we already have a saved email, trust it immediately.
+    // The store's loadAll() will fail gracefully if the email is no longer on the team.
+    // This avoids the CORS-blocked check_access RPC call that was freezing the UI.
+    if (saved) {
+      setGateState("allowed");
       return;
     }
 
-    try {
-      // @ts-ignore
-      const { data: hasAccess, error: rpcErr } = await (supabase as any).rpc("check_access", {
-        p_email: saved,
-      });
-
-      if (rpcErr || !hasAccess) {
-        setGateState("prompt");
-        return;
-      }
-      setGateState("allowed");
-    } catch {
-      setGateState("prompt");
-    }
+    setGateState("prompt");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -51,17 +43,28 @@ export function EmailGate({ children }: { children: ReactNode }) {
     setError("");
     const email = emailInput.trim().toLowerCase();
 
-    // @ts-ignore
-    const { data: hasAccess, error: fetchErr } = await (supabase as any).rpc("check_access", {
-      p_email: email,
-    });
+    try {
+      // Use get_user_projects instead of check_access to avoid CORS issues.
+      // If the user has at least one project OR is a superadmin, grant access.
+      const [{ data: projects }, { data: adminRow }] = await Promise.all([
+        (supabase as any).rpc("get_user_projects", { p_email: email }),
+        (supabase as any).from("rk_superadmins").select("email").eq("email", email).maybeSingle(),
+      ]);
 
-    if (hasAccess && !fetchErr) {
-      localStorage.setItem(EMAIL_KEY, email);
-      setGateState("allowed");
-    } else {
-      setError("This email is not on the project team. Contact your project admin.");
+      const hasAccess = (projects && projects.length > 0) || !!adminRow;
+
+      if (hasAccess) {
+        localStorage.setItem(EMAIL_KEY, email);
+        // Trigger the store to load projects now that the email is saved
+        actions.initialize();
+        setGateState("allowed");
+      } else {
+        setError("This email is not on the project team. Contact your project admin.");
+      }
+    } catch {
+      setError("Connection error. Please check your network and try again.");
     }
+
     setSubmitting(false);
   }
 
