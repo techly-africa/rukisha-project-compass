@@ -223,9 +223,12 @@ function ProjectCard({ project }: { project: ProjectInfo }) {
 
           <div className="flex items-center gap-1">
             <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[var(--rk-gold)] w-[40%] rounded-full shadow-[0_0_8px_rgba(201,162,39,0.5)]" />
+              <div 
+                className="h-full bg-[var(--rk-gold)] transition-all duration-1000 rounded-full shadow-[0_0_8px_rgba(201,162,39,0.5)]" 
+                style={{ width: `${project.progress}%` }}
+              />
             </div>
-            <span className="text-[10px] font-bold text-white/40 ml-2">40%</span>
+            <span className="text-[10px] font-bold text-white/40 ml-2">{project.progress}%</span>
           </div>
         </div>
 

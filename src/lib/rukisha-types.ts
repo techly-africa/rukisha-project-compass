@@ -36,6 +36,7 @@ export interface ProjectInfo {
   goLiveDate: string;
   updatedAt: string;
   isArchived?: boolean;
+  progress: number;
 }
 
 export interface ProjectState {

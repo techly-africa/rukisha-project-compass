@@ -112,7 +112,8 @@ async function loadAll(id?: string) {
     name: p.name,
     goLiveDate: p.go_live_date,
     updatedAt: p.updated_at,
-    isArchived: p.is_archived
+    isArchived: p.is_archived,
+    progress: Number(p.progress || 0)
   }));
 
   // 1.5 Determine Super Admin status
