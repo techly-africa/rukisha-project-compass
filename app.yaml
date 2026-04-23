@@ -1,0 +1,13 @@
+name: rukisha-project-compass
+static_sites:
+  - name: rukisha-project-compass
+    build_command: npm run build
+    output_dir: dist/client
+    catchall_document: index.html
+    envs:
+      - key: VITE_SUPABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${VITE_SUPABASE_URL}
+      - key: VITE_SUPABASE_ANON_KEY
+        scope: RUN_AND_BUILD_TIME
+        value: ${VITE_SUPABASE_ANON_KEY}
