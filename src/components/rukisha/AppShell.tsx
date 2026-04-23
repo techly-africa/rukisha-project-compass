@@ -1,5 +1,5 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, type ReactNode } from "react";
 import { actions, useHydratedProject, useProject } from "@/lib/rukisha-store";
 
 function Icon({ d, className }: { d: string; className?: string }) {
@@ -10,7 +10,7 @@ function Icon({ d, className }: { d: string; className?: string }) {
   );
 }
 
-export function AppShell() {
+export function AppShell({ children }: { children: ReactNode }) {
   useHydratedProject();
   const state = useProject();
   const { location } = useRouterState();
@@ -82,9 +82,7 @@ export function AppShell() {
             </button>
           </div>
         </header>
-        <main className="flex-1 min-w-0">
-          <Outlet />
-        </main>
+        <main className="flex-1 min-w-0">{children}</main>
       </div>
     </div>
   );
