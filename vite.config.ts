@@ -12,6 +12,10 @@ export default defineConfig({
       port: 8080,
       strictPort: true,
       host: "0.0.0.0",
+      allowedHosts: [
+        "lionfish-app-vrot8.ondigitalocean.app",
+        ".ondigitalocean.app"
+      ]
     },
   },
 });
