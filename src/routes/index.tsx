@@ -1,26 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { GanttChart } from "@/components/rukisha/GanttChart";
+import { Toolbar } from "@/components/rukisha/Toolbar";
+import { AppShell } from "@/components/rukisha/AppShell";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Rukisha Project Tracker — Gantt" },
+      { name: "description", content: "Beautiful Gantt-style project tracker for launches and rollouts." },
+    ],
+  }),
+  component: GanttPage,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+function GanttPage() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <AppShellWrapper>
+      <Toolbar />
+      <GanttChart />
+    </AppShellWrapper>
   );
 }
 
-function Index() {
-  return <PlaceholderIndex />;
+function AppShellWrapper({ children }: { children: React.ReactNode }) {
+  // AppShell renders its own Outlet via __root in real usage, but here both routes wrap themselves.
+  return <AppShell>{children}</AppShell>;
 }
