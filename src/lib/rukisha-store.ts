@@ -313,10 +313,17 @@ export const actions = {
     if (patch.sectionId !== undefined) dbPatch.section_id = patch.sectionId;
     if (Object.keys(dbPatch).length === 0) return;
     try {
-      const { error } = await supabase
-        .from("rk_tasks")
-        .update(dbPatch)
-        .eq("id", id);
+      const { error } = await (supabase as any).rpc("update_task_secure", {
+        p_id: id,
+        p_activity: dbPatch.activity ?? null,
+        p_owner: dbPatch.owner ?? null,
+        p_plan_start: dbPatch.plan_start ?? null,
+        p_plan_duration: dbPatch.plan_duration ?? null,
+        p_actual_start: dbPatch.actual_start ?? null,
+        p_actual_duration: dbPatch.actual_duration ?? null,
+        p_percent_complete: dbPatch.percent_complete ?? null,
+        p_section_id: dbPatch.section_id ?? null,
+      });
       if (error) throw error;
     } catch (err) {
       console.error("Task update failed:", err);
