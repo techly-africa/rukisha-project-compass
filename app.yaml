@@ -7,10 +7,10 @@ static_sites:
     envs:
       - key: VITE_SUPABASE_URL
         scope: BUILD_TIME
-        value: ${VITE_SUPABASE_URL}
+        value: https://ynxlxtnewvirkjiutvcj.supabase.co
       - key: VITE_SUPABASE_PUBLISHABLE_KEY
         scope: BUILD_TIME
-        value: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+        value: sb_publishable_4MqwIl6ZuOEizYaFWds0Xw_g9mdZeE1
       - key: VITE_SUPABASE_PROJECT_ID
         scope: BUILD_TIME
-        value: ${VITE_SUPABASE_PROJECT_ID}
+        value: ynxlxtnewvirkjiutvcj
