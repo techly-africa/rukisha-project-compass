@@ -6,8 +6,11 @@ static_sites:
     catchall_document: index.html
     envs:
       - key: VITE_SUPABASE_URL
-        scope: RUN_AND_BUILD_TIME
+        scope: BUILD_TIME
         value: ${VITE_SUPABASE_URL}
-      - key: VITE_SUPABASE_ANON_KEY
-        scope: RUN_AND_BUILD_TIME
-        value: ${VITE_SUPABASE_ANON_KEY}
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        scope: BUILD_TIME
+        value: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+      - key: VITE_SUPABASE_PROJECT_ID
+        scope: BUILD_TIME
+        value: ${VITE_SUPABASE_PROJECT_ID}
