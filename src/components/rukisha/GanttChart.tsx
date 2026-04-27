@@ -683,7 +683,14 @@ function TaskRow({
               <EditableCell
                 type="date"
                 value={task.actualStart ?? ""}
-                onChange={(v) => actions.updateTask(task.id, { actualStart: v || null })}
+                onChange={(v) => {
+                  if (v && actualEnd) {
+                    const newDur = Math.max(0, daysBetween(v, actualEnd));
+                    actions.updateTask(task.id, { actualStart: v, actualDuration: newDur });
+                  } else {
+                    actions.updateTask(task.id, { actualStart: v || null });
+                  }
+                }}
                 className="text-xs"
               />
             </div>
@@ -697,9 +704,12 @@ function TaskRow({
                 type="date"
                 value={actualEnd}
                 onChange={(v) => {
-                  if (!task.actualStart) return;
-                  const newDur = Math.max(0, daysBetween(task.actualStart, v));
-                  actions.updateTask(task.id, { actualDuration: newDur });
+                  const start = task.actualStart || task.planStart;
+                  const newDur = Math.max(0, daysBetween(start, v));
+                  actions.updateTask(task.id, {
+                    actualStart: start,
+                    actualDuration: newDur,
+                  });
                 }}
                 className="text-xs"
               />
@@ -728,11 +738,18 @@ function TaskRow({
               <EditableCell
                 type="number"
                 value={task.percentComplete}
-                onChange={(v) =>
-                  actions.updateTask(task.id, {
-                    percentComplete: Math.min(100, Math.max(0, parseInt(v) || 0)),
-                  })
-                }
+                onChange={(v) => {
+                  const pct = Math.min(100, Math.max(0, parseInt(v) || 0));
+                  const updates: Partial<Task> = { percentComplete: pct };
+
+                  // Auto-fill actuals if marking complete
+                  if (pct === 100) {
+                    if (!task.actualStart) updates.actualStart = task.planStart;
+                    if (!task.actualDuration) updates.actualDuration = task.planDuration;
+                  }
+
+                  actions.updateTask(task.id, updates);
+                }}
                 className="text-xs text-center font-semibold"
               />
             </div>
