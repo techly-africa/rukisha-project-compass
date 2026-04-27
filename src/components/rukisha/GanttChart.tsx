@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   actions,
   dateAdd,
@@ -259,6 +259,7 @@ function StatusBadge({ task }: { task: Task }) {
 export function GanttChart() {
   const state = useProject();
   const [frozenCount, setFrozenCount] = useState(2);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const isPM = state.isSuperAdmin || state.userRole === "PM";
 
   const range = useMemo(() => {
@@ -303,11 +304,24 @@ export function GanttChart() {
     }));
   }, [state.sections, state.tasks]);
 
+  useEffect(() => {
+    if (scrollRef.current && days.length > 0) {
+      const today = todayISO();
+      const todayIdx = days.findIndex(d => d.iso === today);
+      if (todayIdx !== -1) {
+        // Scroll so today is visible after the frozen columns
+        const offset = todayIdx * DAY_W;
+        scrollRef.current.scrollLeft = offset;
+      }
+    }
+  }, [days.length, state.id]); // Re-scroll when project changes or range updates
+
   const totalWidth = STICKY_W + days.length * DAY_W;
 
   return (
     <div
-      className="overflow-auto scrollbar-thin print-full"
+      ref={scrollRef}
+      className="overflow-auto scrollbar-thin print-full scroll-smooth"
       style={{ maxHeight: "calc(100vh - 60px)" }}
     >
       <div style={{ width: totalWidth, minWidth: "100%" }}>
