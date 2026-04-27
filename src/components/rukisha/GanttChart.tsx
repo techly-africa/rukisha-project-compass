@@ -259,6 +259,7 @@ function StatusBadge({ task }: { task: Task }) {
 export function GanttChart() {
   const state = useProject();
   const [frozenCount, setFrozenCount] = useState(2);
+  const isPM = state.isSuperAdmin || state.userRole === "PM";
 
   const range = useMemo(() => {
     const dates = state.tasks.flatMap((t) => [t.planStart, dateAdd(t.planStart, t.planDuration)]);
