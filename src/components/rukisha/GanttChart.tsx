@@ -976,9 +976,8 @@ function TaskRow({
           )}
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 function AddSectionDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");

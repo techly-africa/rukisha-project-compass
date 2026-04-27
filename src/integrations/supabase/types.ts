@@ -180,6 +180,38 @@ export type Database = {
           },
         ];
       };
+      rk_subtasks: {
+        Row: {
+          id: string;
+          task_id: string;
+          title: string;
+          is_completed: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          title: string;
+          is_completed?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          title?: string;
+          is_completed?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rk_subtasks_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "rk_tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
