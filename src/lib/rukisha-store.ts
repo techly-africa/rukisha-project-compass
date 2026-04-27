@@ -185,7 +185,7 @@ async function loadAll(id?: string) {
     }
 
     const [{ data: project }, { data: sections }, { data: tasks }, { data: stakeholders }] = await Promise.all([
-      supabase.from("rk_project").select("*").eq("id", targetId).single(),
+      supabase.from("rk_project").select("*").eq("id", targetId).maybeSingle(),
       supabase.from("rk_sections").select("*").eq("project_id", targetId).order("position"),
       supabase.from("rk_tasks").select("*").eq("project_id", targetId).order("position"),
       supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
