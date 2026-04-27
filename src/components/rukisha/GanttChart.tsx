@@ -398,7 +398,7 @@ function HeaderSticky({
   onSetFrozenCount: (count: number) => void;
 }) {
   return (
-    <div className="flex bg-card">
+    <>
       {COLUMN_CONFIG.map((c, i) => {
         const isSticky = i < frozenCount;
         const leftOffset = COLUMN_CONFIG.slice(0, i).reduce((sum, col) => sum + col.width, 0);
@@ -441,7 +441,7 @@ function HeaderSticky({
           </div>
         );
       })}
-    </div>
+    </>
   );
 }
 
@@ -454,51 +454,64 @@ function SectionRow({
   daysCount: number;
   frozenCount: number;
 }) {
-  const frozenWidth = COLUMN_CONFIG.slice(0, Math.max(0, frozenCount)).reduce(
-    (sum, c) => sum + c.width,
-    0,
-  );
-
   return (
     <div className="flex border-b border-border bg-[var(--rk-light)]">
-      <div
-        className={`${frozenCount > 0 ? "sticky left-0 z-20 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)]" : "relative"} flex items-center gap-2 bg-[var(--rk-light)] px-3 py-2`}
-        style={{ width: frozenWidth || 100 }}
-      >
-        <span className="inline-block h-2 w-2 rounded-full" style={{ background: section.color }} />
-        <input
-          value={section.name}
-          onChange={(e) => actions.updateSection(section.id, { name: e.target.value })}
-          className="bg-transparent text-sm font-semibold text-[var(--rk-navy)] outline-none focus:ring-2 focus:ring-ring rounded px-1"
-        />
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <button className="ml-auto text-xs text-muted-foreground hover:text-[var(--rk-danger)]">
-              ✕
-            </button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Section?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete the section <strong>"{section.name}"</strong> and all
-                its associated tasks. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => actions.deleteSection(section.id)}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Delete Section
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-      <div style={{ width: STICKY_W - frozenWidth }} className="bg-[var(--rk-light)]" />
-      <div style={{ width: daysCount * DAY_W }} className="bg-[var(--rk-light)]" />
+      {COLUMN_CONFIG.map((c, i) => {
+        const isSticky = i < frozenCount;
+        const leftOffset = COLUMN_CONFIG.slice(0, i).reduce((sum, col) => sum + col.width, 0);
+        const isRightmostFrozen = i === frozenCount - 1;
+
+        return (
+          <div
+            key={c.label}
+            className={`${isSticky ? "sticky z-20 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)]" : "relative"} flex items-center bg-[var(--rk-light)] px-3 py-2 border-r border-border/50`}
+            style={{
+              width: c.width,
+              left: isSticky ? leftOffset : undefined,
+            }}
+          >
+            {i === 0 && (
+              <>
+                <span
+                  className="inline-block h-2 w-2 rounded-full shrink-0"
+                  style={{ background: section.color }}
+                />
+                <input
+                  value={section.name}
+                  onChange={(e) => actions.updateSection(section.id, { name: e.target.value })}
+                  className="bg-transparent text-sm font-bold text-[var(--rk-navy)] outline-none focus:ring-1 focus:ring-ring rounded px-1 truncate flex-1"
+                />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="ml-2 text-[10px] text-muted-foreground/60 hover:text-[var(--rk-danger)]">
+                      ✕
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Section?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete the section <strong>"{section.name}"</strong> and
+                        all its associated tasks. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => actions.deleteSection(section.id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Delete Section
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
+          </div>
+        );
+      })}
+      <div style={{ width: daysCount * DAY_W }} className="bg-[var(--rk-light)]/50" />
     </div>
   );
 }
@@ -717,31 +730,29 @@ function TaskRow({
             />
           ))}
         </div>
-        {/* planned bar */}
+        {/* planned bar - thin reference line */}
         <div
-          className="gantt-bar absolute top-2 h-3 rounded-[1px] opacity-60"
+          className="gantt-bar absolute top-2.5 h-1.5 rounded-full opacity-40"
           style={{
             left: planLeft,
             width: planWidth,
-            background: "#CBBED1",
-            backgroundImage:
-              "repeating-linear-gradient(45deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 4px)",
-            border: "1px solid rgba(0,0,0,0.1)",
+            background: "#94a3b8",
+            border: "1px solid rgba(0,0,0,0.05)",
           }}
           title={`Planned: ${task.planStart} → ${planEnd}`}
         />
 
-        {/* actual background bar */}
+        {/* actual background bar - main bar */}
         <div
-          className="gantt-bar absolute top-6 h-4 rounded-[1px] overflow-hidden"
+          className="gantt-bar absolute top-5 h-5 rounded-[2px] overflow-hidden"
           style={{
             left: actualLeft,
             width: actualWidth,
-            background: today > planEnd ? "#E6AC5C" : "#CBBED1",
+            background: today > planEnd && !isComplete ? "#E6AC5C" : "#CBBED1",
             backgroundImage:
               "repeating-linear-gradient(-45deg,transparent,transparent 2px,rgba(255,255,255,0.3) 2px,rgba(255,255,255,0.3) 4px)",
-            opacity: 0.8,
-            border: "1px solid rgba(0,0,0,0.05)",
+            opacity: 1,
+            border: "1px solid rgba(0,0,0,0.1)",
           }}
         >
           {/* actual progress bar */}
@@ -750,7 +761,7 @@ function TaskRow({
               className="h-full transition-all duration-500"
               style={{
                 width: `${task.percentComplete}%`,
-                background: today > planEnd ? "#E6AC5C" : "var(--rk-navy)",
+                background: today > planEnd && !isComplete ? "#E6AC5C" : "var(--rk-navy)",
                 opacity: 1,
               }}
             />

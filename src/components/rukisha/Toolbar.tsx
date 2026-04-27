@@ -126,11 +126,11 @@ function Legend() {
   return (
     <div className="flex items-center gap-6 text-[10px] text-muted-foreground">
       <div className="flex items-center gap-2">
-        <div className="h-3 w-5 bg-[#CBBED1] opacity-70 [background-image:repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(255,255,255,0.4)_2px,rgba(255,255,255,0.4)_4px)] rounded-[1px]" />
-        <span>Planned</span>
+        <div className="h-1 w-5 bg-[#94a3b8] opacity-50 rounded-full" />
+        <span>Planned Schedule</span>
       </div>
       <div className="flex items-center gap-2">
-        <div className="h-3 w-5 bg-[#CBBED1] opacity-90 [background-image:repeating-linear-gradient(-45deg,transparent,transparent_2px,rgba(255,255,255,0.3)_2px,rgba(255,255,255,0.3)_4px)] rounded-[1px]" />
+        <div className="h-3 w-5 bg-[#CBBED1] [background-image:repeating-linear-gradient(-45deg,transparent,transparent_2px,rgba(255,255,255,0.3)_2px,rgba(255,255,255,0.3)_4px)] border border-border/50 rounded-[1px]" />
         <span>Actual Progress</span>
       </div>
       <div className="flex items-center gap-2">
@@ -138,7 +138,7 @@ function Legend() {
         <span>% Complete</span>
       </div>
       <div className="flex items-center gap-2">
-        <div className="h-3 w-5 bg-[#E6AC5C] opacity-70 [background-image:repeating-linear-gradient(-45deg,transparent,transparent_2px,rgba(255,255,255,0.3)_2px,rgba(255,255,255,0.3)_4px)] rounded-[1px]" />
+        <div className="h-3 w-5 bg-[#E6AC5C] [background-image:repeating-linear-gradient(-45deg,transparent,transparent_2px,rgba(255,255,255,0.3)_2px,rgba(255,255,255,0.3)_4px)] border border-border/50 rounded-[1px]" />
         <span>Actual (beyond plan)</span>
       </div>
       <div className="flex items-center gap-2">
