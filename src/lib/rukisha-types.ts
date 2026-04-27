@@ -6,6 +6,13 @@ export interface TeamMember {
   name: string;
 }
 
+export interface SubTask {
+  id: string;
+  taskId: string;
+  title: string;
+  isCompleted: boolean;
+}
+
 export interface Task {
   id: string;
   sectionId: string;
@@ -16,6 +23,7 @@ export interface Task {
   actualStart: string | null;
   actualDuration: number; // days
   percentComplete: number; // 0-100
+  subTasks?: SubTask[];
 }
 
 export interface Section {

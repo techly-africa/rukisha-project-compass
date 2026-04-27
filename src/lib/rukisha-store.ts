@@ -84,10 +84,12 @@ type DbTask = {
 };
 type DbStakeholder = { id: string; name: string; role: string };
 
+type DbSubTask = { id: string; task_id: string; title: string; is_completed: boolean };
+
 function mapSection(s: DbSection): Section {
   return { id: s.id, name: s.name, color: s.color };
 }
-function mapTask(t: DbTask): Task {
+function mapTask(t: DbTask, subtasks: DbSubTask[] = []): Task {
   return {
     id: t.id,
     sectionId: t.section_id,
@@ -98,7 +100,11 @@ function mapTask(t: DbTask): Task {
     actualStart: t.actual_start,
     actualDuration: t.actual_duration,
     percentComplete: t.percent_complete,
+    subTasks: subtasks.map(mapSubTask),
   };
+}
+function mapSubTask(s: DbSubTask) {
+  return { id: s.id, taskId: s.task_id, title: s.title, isCompleted: s.is_completed };
 }
 function mapStakeholder(s: DbStakeholder): Stakeholder {
   return { id: s.id, name: s.name, role: s.role };
@@ -191,6 +197,11 @@ async function loadAll(id?: string) {
       supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
     ]);
 
+    const { data: subtasks } = await supabase
+      .from("rk_subtasks")
+      .select("*")
+      .in("task_id", (tasks || []).map((t) => t.id));
+
     if (!project) {
       setState((s) => ({ ...s, id: null, userProjects: projectList, userEmail, isSuperAdmin }));
       loaded = true;
@@ -206,7 +217,7 @@ async function loadAll(id?: string) {
       goLiveDate: project.go_live_date,
       stakeholders: (stakeholders || []).map(mapStakeholder),
       sections: (sections || []).map(mapSection),
-      tasks: (tasks || []).map(mapTask),
+      tasks: (tasks || []).map((t) => mapTask(t, (subtasks || []).filter((st: any) => st.task_id === t.id))),
       darkMode: localDark,
       userProjects: projectList,
       userEmail,
@@ -416,6 +427,40 @@ export const actions = {
   },
   async switchProject(id: string) {
     await loadAll(id);
+  },
+  async addSubTask(taskId: string, title: string) {
+    const { data } = await supabase.from("rk_subtasks").insert({ task_id: taskId, title, is_completed: false }).select().single();
+    if (data) {
+      const task = state.tasks.find((t) => t.id === taskId);
+      if (task) {
+        const newSubTasks = [...(task.subTasks || []), mapSubTask(data as DbSubTask)];
+        const pct = Math.round((newSubTasks.filter(st => st.isCompleted).length / newSubTasks.length) * 100);
+        await this.updateTask(taskId, { percentComplete: pct });
+        await loadAll();
+      }
+    }
+  },
+  async toggleSubTask(taskId: string, subTaskId: string, isCompleted: boolean) {
+    await supabase.from("rk_subtasks").update({ is_completed: isCompleted }).eq("id", subTaskId);
+    const task = state.tasks.find((t) => t.id === taskId);
+    if (task) {
+      const newSubTasks = (task.subTasks || []).map(st => st.id === subTaskId ? { ...st, isCompleted } : st);
+      const pct = Math.round((newSubTasks.filter(st => st.isCompleted).length / newSubTasks.length) * 100);
+      await this.updateTask(taskId, { percentComplete: pct });
+      await loadAll();
+    }
+  },
+  async deleteSubTask(taskId: string, subTaskId: string) {
+    await supabase.from("rk_subtasks").delete().eq("id", subTaskId);
+    const task = state.tasks.find((t) => t.id === taskId);
+    if (task) {
+      const newSubTasks = (task.subTasks || []).filter(st => st.id !== subTaskId);
+      const pct = newSubTasks.length > 0 
+        ? Math.round((newSubTasks.filter(st => st.isCompleted).length / newSubTasks.length) * 100)
+        : task.percentComplete;
+      await this.updateTask(taskId, { percentComplete: pct });
+      await loadAll();
+    }
   },
   importState(_next: ProjectState) {
     console.warn("importState is disabled when synced to Cloud.");

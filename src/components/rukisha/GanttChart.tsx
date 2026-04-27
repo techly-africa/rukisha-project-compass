@@ -518,6 +518,93 @@ function SectionRow({
   );
 }
 
+function TaskDetailModal({ task, children }: { task: Task; children: React.ReactNode }) {
+  const [newSubTask, setNewSubTask] = useState("");
+
+  const completedCount = task.subTasks?.filter((st) => st.isCompleted).length || 0;
+  const totalCount = task.subTasks?.length || 0;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold text-[var(--rk-navy)]">
+            {task.activity}
+          </DialogTitle>
+          <div className="text-sm text-muted-foreground">
+            {task.owner || "No owner assigned"} • {task.percentComplete}% Complete
+          </div>
+        </DialogHeader>
+
+        <div className="mt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Checklist ({completedCount}/{totalCount})
+            </h4>
+          </div>
+
+          <div className="space-y-2 max-h-[300px] overflow-auto pr-2">
+            {task.subTasks?.map((st) => (
+              <div key={st.id} className="flex items-center gap-3 group px-1 py-0.5 rounded hover:bg-muted/30">
+                <input
+                  type="checkbox"
+                  checked={st.isCompleted}
+                  onChange={(e) => actions.toggleSubTask(task.id, st.id, e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-[var(--rk-navy)] focus:ring-[var(--rk-navy)] cursor-pointer"
+                />
+                <span
+                  className={`flex-1 text-sm ${st.isCompleted ? "line-through text-muted-foreground" : "text-foreground"}`}
+                >
+                  {st.title}
+                </span>
+                <button
+                  onClick={() => actions.deleteSubTask(task.id, st.id)}
+                  className="opacity-0 group-hover:opacity-100 text-xs text-muted-foreground hover:text-[var(--rk-danger)] transition-opacity"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+
+            {totalCount === 0 && (
+              <div className="py-4 text-center text-xs text-muted-foreground italic">
+                No checklist items yet. Break this task down into smaller steps!
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Input
+              placeholder="Add an item..."
+              value={newSubTask}
+              onChange={(e) => setNewSubTask(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newSubTask.trim()) {
+                  actions.addSubTask(task.id, newSubTask.trim());
+                  setNewSubTask("");
+                }
+              }}
+              className="h-9"
+            />
+            <Button
+              size="sm"
+              onClick={() => {
+                if (newSubTask.trim()) {
+                  actions.addSubTask(task.id, newSubTask.trim());
+                  setNewSubTask("");
+                }
+              }}
+            >
+              Add
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function TaskRow({
   task,
   rangeStart,
@@ -577,8 +664,8 @@ function TaskRow({
         const isRightmostFrozen = i === frozenCount - 1;
 
         const cellProps = {
-          className: `flex items-center border-r border-border bg-background group-hover:bg-muted/40 transition-colors duration-150 ${
-            isSticky ? "sticky z-10" : "relative"
+          className: `flex h-11 items-center border-r border-border transition-shadow duration-200 ${
+            isSticky ? "sticky z-10 bg-card/90 backdrop-blur-sm" : "relative z-0"
           } ${isRightmostFrozen ? "shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)]" : ""}`,
           style: {
             width: c.width,
@@ -587,6 +674,9 @@ function TaskRow({
         };
 
         if (i === 0) {
+          const completed = task.subTasks?.filter((st) => st.isCompleted).length || 0;
+          const total = task.subTasks?.length || 0;
+
           return (
             <div key={c.label} {...cellProps}>
               <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
@@ -605,11 +695,22 @@ function TaskRow({
                   ▼
                 </button>
               </div>
-              <EditableCell
-                value={task.activity}
-                onChange={(v) => actions.updateTask(task.id, { activity: v })}
-                className="flex-1 font-medium"
-              />
+              <div className="flex-1 flex items-center min-w-0">
+                <TaskDetailModal task={task}>
+                  <div className="flex-1 flex items-center min-w-0 cursor-pointer hover:bg-muted/50 rounded px-1 group/title">
+                    <EditableCell
+                      value={task.activity}
+                      onChange={(v) => actions.updateTask(task.id, { activity: v })}
+                      className="flex-1 font-medium truncate"
+                    />
+                    {total > 0 && (
+                      <span className={`ml-1.5 text-[9px] font-bold px-1 rounded-full shrink-0 ${completed === total ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
+                        {completed}/{total}
+                      </span>
+                    )}
+                  </div>
+                </TaskDetailModal>
+              </div>
               <button
                 onClick={() => actions.deleteTask(task.id)}
                 className="opacity-0 group-hover:opacity-100 px-2 text-xs text-muted-foreground hover:text-[var(--rk-danger)]"
@@ -772,61 +873,63 @@ function TaskRow({
       })}
 
       {/* Timeline */}
-      <div className="relative" style={{ width: days.length * DAY_W, height: 44 }}>
-        {/* day backgrounds */}
-        <div className="absolute inset-0 flex">
-          {days.map((d) => (
-            <div
-              key={d.iso}
-              className={`w-8 border-r border-border ${d.isWeekend ? "bg-muted/30" : ""} ${d.isToday ? "bg-[var(--rk-danger)]/8" : ""} ${d.isGoLive ? "bg-[var(--rk-gold)]/15" : ""}`}
-            />
-          ))}
-        </div>
-        {/* planned bar - thin reference line */}
-        <div
-          className="gantt-bar absolute top-2.5 h-1.5 rounded-full opacity-40"
-          style={{
-            left: planLeft,
-            width: planWidth,
-            background: "#94a3b8",
-            border: "1px solid rgba(0,0,0,0.05)",
-          }}
-          title={`Planned: ${task.planStart} → ${planEnd}`}
-        />
+      <TaskDetailModal task={task}>
+        <div className="relative cursor-pointer" style={{ width: days.length * DAY_W, height: 44 }}>
+          {/* day backgrounds */}
+          <div className="absolute inset-0 flex">
+            {days.map((d) => (
+              <div
+                key={d.iso}
+                className={`w-8 border-r border-border ${d.isWeekend ? "bg-muted/30" : ""} ${d.isToday ? "bg-[var(--rk-danger)]/8" : ""} ${d.isGoLive ? "bg-[var(--rk-gold)]/15" : ""}`}
+              />
+            ))}
+          </div>
+          {/* planned bar - thin reference line */}
+          <div
+            className="gantt-bar absolute top-2.5 h-1.5 rounded-full opacity-40"
+            style={{
+              left: planLeft,
+              width: planWidth,
+              background: "#94a3b8",
+              border: "1px solid rgba(0,0,0,0.05)",
+            }}
+            title={`Planned: ${task.planStart} → ${planEnd}`}
+          />
 
-        {/* actual background bar - main bar */}
-        <div
-          className="gantt-bar absolute top-5 h-5 rounded-[2px] overflow-hidden"
-          style={{
-            left: actualLeft,
-            width: actualWidth,
-            background: today > planEnd && !isComplete ? "#E6AC5C" : "#CBBED1",
-            backgroundImage:
-              "repeating-linear-gradient(-45deg,transparent,transparent 2px,rgba(255,255,255,0.3) 2px,rgba(255,255,255,0.3) 4px)",
-            opacity: 1,
-            border: "1px solid rgba(0,0,0,0.1)",
-          }}
-        >
-          {/* actual progress bar */}
-          {task.percentComplete > 0 && (
+          {/* actual background bar - main bar */}
+          <div
+            className="gantt-bar absolute top-5 h-5 rounded-[2px] overflow-hidden"
+            style={{
+              left: actualLeft,
+              width: actualWidth,
+              background: today > planEnd && !isComplete ? "#E6AC5C" : "#CBBED1",
+              backgroundImage:
+                "repeating-linear-gradient(-45deg,transparent,transparent 2px,rgba(255,255,255,0.3) 2px,rgba(255,255,255,0.3) 4px)",
+              opacity: 1,
+              border: "1px solid rgba(0,0,0,0.1)",
+            }}
+          >
+            {/* actual progress bar */}
+            {task.percentComplete > 0 && (
+              <div
+                className="h-full transition-all duration-500"
+                style={{
+                  width: `${task.percentComplete}%`,
+                  background: today > planEnd && !isComplete ? "#E6AC5C" : "var(--rk-navy)",
+                  opacity: 1,
+                }}
+              />
+            )}
+          </div>
+          {/* today line */}
+          {days.some((d) => d.isToday) && (
             <div
-              className="h-full transition-all duration-500"
-              style={{
-                width: `${task.percentComplete}%`,
-                background: today > planEnd && !isComplete ? "#E6AC5C" : "var(--rk-navy)",
-                opacity: 1,
-              }}
+              className="absolute top-0 bottom-0 w-px bg-[var(--rk-danger)]"
+              style={{ left: daysBetween(rangeStart, today) * DAY_W + DAY_W / 2 }}
             />
           )}
         </div>
-        {/* today line */}
-        {days.some((d) => d.isToday) && (
-          <div
-            className="absolute top-0 bottom-0 w-px bg-[var(--rk-danger)]"
-            style={{ left: daysBetween(rangeStart, today) * DAY_W + DAY_W / 2 }}
-          />
-        )}
-      </div>
+      </TaskDetailModal>
     </div>
   );
 }
