@@ -319,28 +319,23 @@ export const actions = {
     await supabase.from("rk_stakeholders").delete().eq("id", id);
   },
   async updateTask(id: string, patch: Partial<Task>) {
+    const task = state.tasks.find((t) => t.id === id);
+    if (!task) return;
+
+    // Optimistic local update
     setState((s) => ({ ...s, tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
-    const dbPatch: any = {};
-    if (patch.activity !== undefined) dbPatch.activity = patch.activity;
-    if (patch.owner !== undefined) dbPatch.owner = patch.owner;
-    if (patch.planStart !== undefined) dbPatch.plan_start = patch.planStart;
-    if (patch.planDuration !== undefined) dbPatch.plan_duration = patch.planDuration;
-    if (patch.actualStart !== undefined) dbPatch.actual_start = patch.actualStart;
-    if (patch.actualDuration !== undefined) dbPatch.actual_duration = patch.actualDuration;
-    if (patch.percentComplete !== undefined) dbPatch.percent_complete = patch.percentComplete;
-    if (patch.sectionId !== undefined) dbPatch.section_id = patch.sectionId;
-    if (Object.keys(dbPatch).length === 0) return;
+
     try {
       const { error } = await (supabase as any).rpc("update_task_secure", {
         p_id: id,
-        p_activity: dbPatch.activity ?? null,
-        p_owner: dbPatch.owner ?? null,
-        p_plan_start: dbPatch.plan_start ?? null,
-        p_plan_duration: dbPatch.plan_duration ?? null,
-        p_actual_start: dbPatch.actual_start ?? null,
-        p_actual_duration: dbPatch.actual_duration ?? null,
-        p_percent_complete: dbPatch.percent_complete ?? null,
-        p_section_id: dbPatch.section_id ?? null,
+        p_activity: patch.activity !== undefined ? patch.activity : task.activity,
+        p_owner: patch.owner !== undefined ? patch.owner : task.owner,
+        p_plan_start: patch.planStart !== undefined ? patch.planStart : task.planStart,
+        p_plan_duration: patch.planDuration !== undefined ? patch.planDuration : task.planDuration,
+        p_actual_start: patch.actualStart !== undefined ? patch.actualStart : task.actualStart,
+        p_actual_duration: patch.actualDuration !== undefined ? patch.actualDuration : task.actualDuration,
+        p_percent_complete: patch.percentComplete !== undefined ? patch.percentComplete : task.percentComplete,
+        p_section_id: patch.sectionId !== undefined ? patch.sectionId : task.sectionId,
       });
       if (error) throw error;
     } catch (err) {

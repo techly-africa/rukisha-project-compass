@@ -885,8 +885,14 @@ function TaskRow({
 
                   // Auto-fill actuals if marking complete
                   if (pct === 100) {
-                    if (!task.actualStart) updates.actualStart = task.planStart;
-                    if (!task.actualDuration) updates.actualDuration = task.planDuration;
+                    const today = todayISO();
+                    if (!task.actualStart) {
+                      updates.actualStart = task.planStart;
+                      updates.actualDuration = task.planDuration;
+                    } else {
+                      // If it already started, default finish to Today
+                      updates.actualDuration = Math.max(0, daysBetween(task.actualStart, today));
+                    }
                   }
 
                   actions.updateTask(task.id, updates);
