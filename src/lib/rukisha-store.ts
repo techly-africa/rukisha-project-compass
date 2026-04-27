@@ -191,7 +191,12 @@ async function loadAll(id?: string) {
       supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
     ]);
 
-    if (!project) return;
+    if (!project) {
+      setState((s) => ({ ...s, id: null, userProjects: projectList, userEmail, isSuperAdmin }));
+      loaded = true;
+      emit();
+      return;
+    }
 
     const localDark = typeof window !== "undefined" ? localStorage.getItem("rk-dark") === "1" : false;
 
