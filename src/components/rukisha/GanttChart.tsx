@@ -722,25 +722,25 @@ function TaskRow({
                   </button>
                 </div>
               )}
-              <div className="flex-1 flex items-center min-w-0 pl-1">
+              <div className="flex-1 flex items-center min-w-0 pl-1 group/title">
                 <TaskDetailModal task={task}>
-                  <div className="flex-1 flex items-center min-w-0 cursor-pointer hover:bg-muted/50 rounded px-1 group/title">
-                    <Eye className="h-3 w-3 mr-2 text-muted-foreground opacity-40 group-hover/title:opacity-100 transition-opacity" />
-                    <EditableCell
-                      value={task.activity}
-                      onChange={(v) => actions.updateTask(task.id, { activity: v })}
-                      className="flex-1 font-medium truncate"
-                      disabled={!isPM}
-                    />
-                    {total > 0 && (
-                      <span
-                        className={`ml-1.5 text-[9px] font-bold px-1 rounded-full shrink-0 ${completed === total ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}
-                      >
-                        {completed}/{total}
-                      </span>
-                    )}
+                  <div className="p-1 cursor-pointer hover:bg-muted/50 rounded-sm mr-1">
+                    <Eye className="h-3 w-3 text-muted-foreground opacity-40 group-hover/title:opacity-100 transition-opacity" />
                   </div>
                 </TaskDetailModal>
+                <EditableCell
+                  value={task.activity}
+                  onChange={(v) => actions.updateTask(task.id, { activity: v })}
+                  className="flex-1 font-medium truncate"
+                  disabled={!isPM}
+                />
+                {total > 0 && (
+                  <span
+                    className={`ml-1.5 text-[9px] font-bold px-1 rounded-full shrink-0 ${completed === total ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}
+                  >
+                    {completed}/{total}
+                  </span>
+                )}
               </div>
               {isPM && (
                 <button
@@ -920,8 +920,7 @@ function TaskRow({
       })}
 
       {/* Timeline */}
-      <TaskDetailModal task={task}>
-        <div className="relative cursor-pointer" style={{ width: days.length * DAY_W, height: 44 }}>
+      <div className="relative" style={{ width: days.length * DAY_W, height: 44 }}>
           {/* day backgrounds */}
           <div className="absolute inset-0 flex">
             {days.map((d) => (
@@ -976,7 +975,7 @@ function TaskRow({
             />
           )}
         </div>
-      </TaskDetailModal>
+      </div>
     </div>
   );
 }
