@@ -122,6 +122,7 @@ export type Database = {
           project_id: string;
           email: string;
           name: string;
+          role: string | null;
           added_at: string;
         };
         Insert: {
@@ -129,6 +130,7 @@ export type Database = {
           project_id: string;
           email: string;
           name?: string;
+          role?: string | null;
           added_at?: string;
         };
         Update: {
@@ -136,6 +138,7 @@ export type Database = {
           project_id?: string;
           email?: string;
           name?: string;
+          role?: string | null;
           added_at?: string;
         };
         Relationships: [
