@@ -38,9 +38,11 @@ const DAY_W = 32;
 const COLUMN_CONFIG = [
   { label: "Activity", width: 280 },
   { label: "Owner", width: 140 },
-  { label: "Plan Start", width: 130 },
+  { label: "Plan Start", width: 120 },
+  { label: "Plan Finish", width: 120 },
   { label: "Plan Dur", width: 66 },
-  { label: "Actual Start", width: 130 },
+  { label: "Actual Start", width: 120 },
+  { label: "Actual Finish", width: 120 },
   { label: "Actual Dur", width: 66 },
   { label: "%", width: 60 },
   { label: "Status", width: 110 },
@@ -557,7 +559,7 @@ function TaskRow({
 
   // Determine actual bar color
   const planEnd = dateAdd(task.planStart, task.planDuration);
-  const isComplete = task.percentComplete >= 100;
+  const actualEnd = task.actualStart ? dateAdd(task.actualStart, task.actualDuration) : "";
   const isOverrun = today > planEnd && !isComplete;
   const isProgressing = task.percentComplete > 0 && !isComplete;
 
@@ -648,6 +650,22 @@ function TaskRow({
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
               <EditableCell
+                type="date"
+                value={planEnd}
+                onChange={(v) => {
+                  const newDur = Math.max(1, daysBetween(task.planStart, v));
+                  actions.updateTask(task.id, { planDuration: newDur });
+                }}
+                className="text-xs"
+              />
+            </div>
+          );
+        }
+
+        if (i === 4) {
+          return (
+            <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
+              <EditableCell
                 type="number"
                 value={task.planDuration}
                 onChange={(v) =>
@@ -659,7 +677,7 @@ function TaskRow({
           );
         }
 
-        if (i === 4) {
+        if (i === 5) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
               <EditableCell
@@ -672,7 +690,24 @@ function TaskRow({
           );
         }
 
-        if (i === 5) {
+        if (i === 6) {
+          return (
+            <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
+              <EditableCell
+                type="date"
+                value={actualEnd}
+                onChange={(v) => {
+                  if (!task.actualStart) return;
+                  const newDur = Math.max(0, daysBetween(task.actualStart, v));
+                  actions.updateTask(task.id, { actualDuration: newDur });
+                }}
+                className="text-xs"
+              />
+            </div>
+          );
+        }
+
+        if (i === 7) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
               <EditableCell
@@ -687,7 +722,7 @@ function TaskRow({
           );
         }
 
-        if (i === 6) {
+        if (i === 8) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
               <EditableCell
@@ -704,7 +739,7 @@ function TaskRow({
           );
         }
 
-        if (i === 7) {
+        if (i === 9) {
           return (
             <div
               key={c.label}
