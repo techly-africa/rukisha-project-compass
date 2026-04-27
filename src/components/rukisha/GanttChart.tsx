@@ -526,8 +526,21 @@ function TaskRow({
   const actualLeft = task.actualStart
     ? daysBetween(rangeStart, task.actualStart) * DAY_W
     : planLeft;
-  const actualDur = task.actualDuration || task.planDuration;
-  const actualWidth = actualDur * DAY_W;
+
+  // Calculate effective actual duration:
+  // If complete, use actualDuration. 
+  // If not complete, stretch from start to today if today is later.
+  const startISO = task.actualStart || task.planStart;
+  const isComplete = task.percentComplete >= 100;
+  let effectiveDur = task.actualDuration || task.planDuration;
+
+  if (!isComplete) {
+    const daysSinceStart = daysBetween(startISO, today);
+    if (daysSinceStart > effectiveDur) {
+      effectiveDur = daysSinceStart;
+    }
+  }
+  const actualWidth = effectiveDur * DAY_W;
 
   // Determine actual bar color
   const planEnd = dateAdd(task.planStart, task.planDuration);
@@ -726,7 +739,7 @@ function TaskRow({
             width: actualWidth,
             background: today > planEnd ? "#E6AC5C" : "#CBBED1",
             backgroundImage:
-              "repeating-linear-gradient(45deg,transparent,transparent 2px,rgba(255,255,255,0.4) 2px,rgba(255,255,255,0.4) 4px)",
+              "repeating-linear-gradient(-45deg,transparent,transparent 2px,rgba(255,255,255,0.3) 2px,rgba(255,255,255,0.3) 4px)",
             opacity: 0.8,
             border: "1px solid rgba(0,0,0,0.05)",
           }}
