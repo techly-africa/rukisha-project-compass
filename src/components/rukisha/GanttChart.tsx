@@ -91,6 +91,7 @@ function EditableCell({
   className = "",
   width,
   suggestions = [],
+  disabled = false,
 }: {
   value: string | number;
   onChange: (v: string) => void;
@@ -98,6 +99,7 @@ function EditableCell({
   className?: string;
   width?: number;
   suggestions?: string[];
+  disabled?: boolean;
 }) {
   const [v, setV] = useState(String(value));
   const [focused, setFocused] = useState(false);
@@ -108,8 +110,10 @@ function EditableCell({
       <input
         type={type}
         list={suggestions.length ? listId : undefined}
+        disabled={disabled}
         value={focused ? v : String(value)}
         onFocus={() => {
+          if (disabled) return;
           setV(String(value));
           setFocused(true);
         }}
@@ -141,10 +145,12 @@ function OwnerCell({
   value,
   stakeholders,
   onChange,
+  disabled = false,
 }: {
   value: string;
   stakeholders: Stakeholder[];
   onChange: (v: string) => void;
+  disabled?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const selectedNames = useMemo(
@@ -221,6 +227,7 @@ function OwnerCell({
             onChange={onChange}
             className="bg-muted/30 px-2 py-1.5 focus:bg-background"
             suggestions={stakeholders.map((s) => s.name)}
+            disabled={disabled}
           />
           <div className="text-[9px] text-muted-foreground px-2 mt-1">
             Manual entry (separate by comma)
@@ -754,6 +761,7 @@ function TaskRow({
                 value={task.owner}
                 stakeholders={state.stakeholders}
                 onChange={(v) => actions.updateTask(task.id, { owner: v })}
+                disabled={!isPM}
               />
             </div>
           );
@@ -762,11 +770,12 @@ function TaskRow({
         if (i === 2) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-              <EditableCell
+               <EditableCell
                 type="date"
                 value={task.planStart}
                 onChange={(v) => actions.updateTask(task.id, { planStart: v })}
                 className="text-xs"
+                disabled={!isPM}
               />
             </div>
           );
@@ -775,7 +784,7 @@ function TaskRow({
         if (i === 3) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-              <EditableCell
+               <EditableCell
                 type="date"
                 value={planEnd}
                 onChange={(v) => {
@@ -783,6 +792,7 @@ function TaskRow({
                   actions.updateTask(task.id, { planDuration: newDur });
                 }}
                 className="text-xs"
+                disabled={!isPM}
               />
             </div>
           );
@@ -791,13 +801,14 @@ function TaskRow({
         if (i === 4) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-              <EditableCell
+               <EditableCell
                 type="number"
                 value={task.planDuration}
                 onChange={(v) =>
                   actions.updateTask(task.id, { planDuration: Math.max(1, parseInt(v) || 1) })
                 }
                 className="text-xs text-center"
+                disabled={!isPM}
               />
             </div>
           );
@@ -806,7 +817,7 @@ function TaskRow({
         if (i === 5) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-              <EditableCell
+               <EditableCell
                 type="date"
                 value={task.actualStart ?? ""}
                 onChange={(v) => {
@@ -818,6 +829,7 @@ function TaskRow({
                   }
                 }}
                 className="text-xs"
+                disabled={!isPM}
               />
             </div>
           );
@@ -826,7 +838,7 @@ function TaskRow({
         if (i === 6) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-              <EditableCell
+               <EditableCell
                 type="date"
                 value={actualEnd}
                 onChange={(v) => {
@@ -838,6 +850,7 @@ function TaskRow({
                   });
                 }}
                 className="text-xs"
+                disabled={!isPM}
               />
             </div>
           );
@@ -846,13 +859,14 @@ function TaskRow({
         if (i === 7) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-              <EditableCell
+               <EditableCell
                 type="number"
                 value={task.actualDuration}
                 onChange={(v) =>
                   actions.updateTask(task.id, { actualDuration: Math.max(0, parseInt(v) || 0) })
                 }
                 className="text-xs text-center"
+                disabled={!isPM}
               />
             </div>
           );
@@ -861,7 +875,7 @@ function TaskRow({
         if (i === 8) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-              <EditableCell
+               <EditableCell
                 type="number"
                 value={task.percentComplete}
                 onChange={(v) => {
@@ -877,6 +891,7 @@ function TaskRow({
                   actions.updateTask(task.id, updates);
                 }}
                 className="text-xs text-center font-semibold"
+                disabled={!isPM}
               />
             </div>
           );
