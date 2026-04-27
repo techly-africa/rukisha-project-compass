@@ -9,7 +9,7 @@ import {
 } from "@/lib/rukisha-store";
 import type { Section, Task, Stakeholder } from "@/lib/rukisha-types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, UserPlus, Users, Plus } from "lucide-react";
+import { Check, UserPlus, Users, Plus, Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -340,22 +340,24 @@ export function GanttChart() {
                 frozenCount={frozenCount}
               />
             ))}
-            <div
-              className={`${frozenCount > 0 ? "sticky left-0 z-10" : "relative"} flex bg-background`}
-              style={{
-                width: COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce(
-                  (a, b) => a + b.width,
-                  0,
-                ),
-              }}
-            >
-              <button
-                onClick={() => actions.addTask(section.id)}
-                className="m-2 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+            {isPM && (
+              <div
+                className={`${frozenCount > 0 ? "sticky left-0 z-10" : "relative"} flex bg-background`}
+                style={{
+                  width: COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce(
+                    (a, b) => a + b.width,
+                    0,
+                  ),
+                }}
               >
-                + Add task to {section.name}
-              </button>
-            </div>
+                <button
+                  onClick={() => actions.addTask(section.id)}
+                  className="m-2 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  + Add task to {section.name}
+                </button>
+              </div>
+            )}
             <div
               style={{
                 width:
@@ -368,17 +370,19 @@ export function GanttChart() {
         ))}
 
         <div className="flex border-t border-border">
-          <div
-            className={`${frozenCount > 0 ? "sticky left-0 z-10" : "relative"} bg-background p-3`}
-            style={{
-              width: COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce(
-                (a, b) => a + b.width,
-                0,
-              ),
-            }}
-          >
-            <AddSectionDialog />
-          </div>
+          {isPM && (
+            <div
+              className={`${frozenCount > 0 ? "sticky left-0 z-10" : "relative"} bg-background p-3`}
+              style={{
+                width: COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce(
+                  (a, b) => a + b.width,
+                  0,
+                ),
+              }}
+            >
+              <AddSectionDialog />
+            </div>
+          )}
           <div
             style={{
               width:
@@ -456,6 +460,9 @@ function SectionRow({
   daysCount: number;
   frozenCount: number;
 }) {
+  const state = useProject();
+  const isPM = state.isSuperAdmin || state.userRole === "PM";
+
   return (
     <div className="flex border-b border-border bg-[var(--rk-light)]">
       {COLUMN_CONFIG.map((c, i) => {
@@ -482,32 +489,35 @@ function SectionRow({
                   value={section.name}
                   onChange={(e) => actions.updateSection(section.id, { name: e.target.value })}
                   className="bg-transparent text-sm font-bold text-[var(--rk-navy)] outline-none focus:ring-1 focus:ring-ring rounded px-1 truncate flex-1"
+                  disabled={!isPM}
                 />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <button className="ml-2 text-[10px] text-muted-foreground/60 hover:text-[var(--rk-danger)]">
-                      ✕
-                    </button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Section?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete the section <strong>"{section.name}"</strong> and
-                        all its associated tasks. This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => actions.deleteSection(section.id)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Delete Section
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                {isPM && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button className="ml-2 text-[10px] text-muted-foreground/60 hover:text-[var(--rk-danger)]">
+                        ✕
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Section?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete the section <strong>"{section.name}"</strong> and
+                          all its associated tasks. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => actions.deleteSection(section.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete Section
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </>
             )}
           </div>
@@ -519,6 +529,8 @@ function SectionRow({
 }
 
 function TaskDetailModal({ task, children }: { task: Task; children: React.ReactNode }) {
+  const state = useProject();
+  const isPM = state.isSuperAdmin || state.userRole === "PM";
   const [newSubTask, setNewSubTask] = useState("");
 
   const completedCount = task.subTasks?.filter((st) => st.isCompleted).length || 0;
@@ -558,12 +570,14 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
                 >
                   {st.title}
                 </span>
-                <button
-                  onClick={() => actions.deleteSubTask(task.id, st.id)}
-                  className="opacity-0 group-hover:opacity-100 text-xs text-muted-foreground hover:text-[var(--rk-danger)] transition-opacity"
-                >
-                  ✕
-                </button>
+                {isPM && (
+                  <button
+                    onClick={() => actions.deleteSubTask(task.id, st.id)}
+                    className="opacity-0 group-hover:opacity-100 text-xs text-muted-foreground hover:text-[var(--rk-danger)] transition-opacity"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             ))}
 
@@ -574,31 +588,33 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
             )}
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <Input
-              placeholder="Add an item..."
-              value={newSubTask}
-              onChange={(e) => setNewSubTask(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && newSubTask.trim()) {
-                  actions.addSubTask(task.id, newSubTask.trim());
-                  setNewSubTask("");
-                }
-              }}
-              className="h-9"
-            />
-            <Button
-              size="sm"
-              onClick={() => {
-                if (newSubTask.trim()) {
-                  actions.addSubTask(task.id, newSubTask.trim());
-                  setNewSubTask("");
-                }
-              }}
-            >
-              Add
-            </Button>
-          </div>
+          {isPM && (
+            <div className="flex gap-2 pt-2">
+              <Input
+                placeholder="Add an item..."
+                value={newSubTask}
+                onChange={(e) => setNewSubTask(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newSubTask.trim()) {
+                    actions.addSubTask(task.id, newSubTask.trim());
+                    setNewSubTask("");
+                  }
+                }}
+                className="h-9"
+              />
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (newSubTask.trim()) {
+                    actions.addSubTask(task.id, newSubTask.trim());
+                    setNewSubTask("");
+                  }
+                }}
+              >
+                Add
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -619,6 +635,7 @@ function TaskRow({
   frozenCount: number;
 }) {
   const state = useProject();
+  const isPM = state.isSuperAdmin || state.userRole === "PM";
   const today = todayISO();
 
   const planStartDay = daysBetween(rangeStart, task.planStart);
@@ -679,45 +696,53 @@ function TaskRow({
 
           return (
             <div key={c.label} {...cellProps}>
-              <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => actions.moveTask(task.id, -1)}
-                  className="px-1 text-[10px] text-muted-foreground hover:text-foreground"
-                  title="Move up"
-                >
-                  ▲
-                </button>
-                <button
-                  onClick={() => actions.moveTask(task.id, 1)}
-                  className="px-1 text-[10px] text-muted-foreground hover:text-foreground"
-                  title="Move down"
-                >
-                  ▼
-                </button>
-              </div>
-              <div className="flex-1 flex items-center min-w-0">
+              {isPM && (
+                <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => actions.moveTask(task.id, -1)}
+                    className="px-1 text-[10px] text-muted-foreground hover:text-foreground"
+                    title="Move up"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => actions.moveTask(task.id, 1)}
+                    className="px-1 text-[10px] text-muted-foreground hover:text-foreground"
+                    title="Move down"
+                  >
+                    ▼
+                  </button>
+                </div>
+              )}
+              <div className="flex-1 flex items-center min-w-0 pl-1">
                 <TaskDetailModal task={task}>
                   <div className="flex-1 flex items-center min-w-0 cursor-pointer hover:bg-muted/50 rounded px-1 group/title">
+                    <Eye className="h-3 w-3 mr-2 text-muted-foreground opacity-40 group-hover/title:opacity-100 transition-opacity" />
                     <EditableCell
                       value={task.activity}
                       onChange={(v) => actions.updateTask(task.id, { activity: v })}
                       className="flex-1 font-medium truncate"
+                      disabled={!isPM}
                     />
                     {total > 0 && (
-                      <span className={`ml-1.5 text-[9px] font-bold px-1 rounded-full shrink-0 ${completed === total ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
+                      <span
+                        className={`ml-1.5 text-[9px] font-bold px-1 rounded-full shrink-0 ${completed === total ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}
+                      >
                         {completed}/{total}
                       </span>
                     )}
                   </div>
                 </TaskDetailModal>
               </div>
-              <button
-                onClick={() => actions.deleteTask(task.id)}
-                className="opacity-0 group-hover:opacity-100 px-2 text-xs text-muted-foreground hover:text-[var(--rk-danger)]"
-                title="Delete"
-              >
-                ✕
-              </button>
+              {isPM && (
+                <button
+                  onClick={() => actions.deleteTask(task.id)}
+                  className="opacity-0 group-hover:opacity-100 px-2 text-xs text-muted-foreground hover:text-[var(--rk-danger)]"
+                  title="Delete"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           );
         }

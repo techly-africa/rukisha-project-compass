@@ -190,11 +190,12 @@ async function loadAll(id?: string) {
       emit();
     }
 
-    const [{ data: project }, { data: sections }, { data: tasks }, { data: stakeholders }] = await Promise.all([
+    const [{ data: project }, { data: sections }, { data: tasks }, { data: stakeholders }, { data: teamMember }] = await Promise.all([
       supabase.from("rk_project").select("*").eq("id", targetId).maybeSingle(),
       supabase.from("rk_sections").select("*").eq("project_id", targetId).order("position"),
       supabase.from("rk_tasks").select("*").eq("project_id", targetId).order("position"),
       supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
+      supabase.from("rk_team").select("role").eq("project_id", targetId).eq("email", userEmail).maybeSingle(),
     ]);
 
     const { data: subtasks } = await supabase
@@ -221,6 +222,7 @@ async function loadAll(id?: string) {
       darkMode: localDark,
       userProjects: projectList,
       userEmail,
+      userRole: (teamMember as any)?.role || "Member",
       isSuperAdmin,
     };
 
@@ -420,7 +422,7 @@ export const actions = {
     const email = localStorage.getItem("rk-email")?.toLowerCase();
     const { data: project } = await supabase.from("rk_project").insert({ name, go_live_date: todayISO(28) }).select().single();
     if (project && email) {
-      await supabase.from("rk_team").insert({ project_id: project.id, email, name: email.split("@")[0] });
+      await supabase.from("rk_team").insert({ project_id: project.id, email, name: email.split("@")[0], role: 'PM' });
       await loadAll(project.id);
       return project.id;
     }

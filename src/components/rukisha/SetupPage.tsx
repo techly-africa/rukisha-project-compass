@@ -19,6 +19,7 @@ interface TeamRow {
   id?: string;
   email: string;
   name: string;
+  role: string;
 }
 
 interface StakeholderRow {
@@ -101,18 +102,18 @@ export function SetupPage() {
   async function loadTeam(id: string) {
     const { data } = await supabase.from("rk_team").select("*").eq("project_id", id);
     if (data && data.length > 0) {
-      setTeam(data.map((r) => ({ id: r.id, email: r.email, name: r.name || "" })));
+      setTeam(data.map((r) => ({ id: r.id, email: r.email, name: r.name || "", role: r.role || "Member" })));
     } else {
-      setTeam([{ email: "", name: "" }]);
+      setTeam([{ email: "", name: "", role: "Member" }]);
     }
     setLoading(false);
   }
 
   function addMember() {
-    setTeam((t) => [...t, { email: "", name: "" }]);
+    setTeam((t) => [...t, { email: "", name: "", role: "Member" }]);
   }
 
-  function updateMember(idx: number, field: "email" | "name", value: string) {
+  function updateMember(idx: number, field: "email" | "name" | "role", value: string) {
     setTeam((t) => t.map((m, i) => (i === idx ? { ...m, [field]: value } : m)));
   }
 
@@ -182,6 +183,7 @@ export function SetupPage() {
             project_id: pid!,
             email: m.email.trim().toLowerCase(),
             name: m.name.trim(),
+            role: m.role || 'Member',
           })),
         ),
         supabase.from("rk_stakeholders").insert(
@@ -301,9 +303,17 @@ export function SetupPage() {
                     type="text"
                     value={member.name}
                     onChange={(e) => updateMember(idx, "name", e.target.value)}
-                    placeholder="Name (optional)"
-                    className="w-40 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    placeholder="Name"
+                    className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />
+                  <select
+                    value={member.role}
+                    onChange={(e) => updateMember(idx, "role", e.target.value)}
+                    className="w-32 rounded-md border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="Member">Member</option>
+                    <option value="PM">PM</option>
+                  </select>
                   <button
                     type="button"
                     onClick={() => removeMember(idx)}
