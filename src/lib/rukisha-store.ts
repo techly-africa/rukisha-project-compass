@@ -473,13 +473,19 @@ export function initializeStore() {
 }
 
 export function dateAdd(iso: string, days: number): string {
+  if (!iso || iso.length < 10) return iso;
   const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return iso;
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
 
 export function daysBetween(a: string, b: string): number {
-  const ms = new Date(b + "T00:00:00").getTime() - new Date(a + "T00:00:00").getTime();
+  if (!a || !b || a.length < 10 || b.length < 10) return 0;
+  const d1 = new Date(a + "T00:00:00");
+  const d2 = new Date(b + "T00:00:00");
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
+  const ms = d2.getTime() - d1.getTime();
   return Math.round(ms / 86400000);
 }
 
