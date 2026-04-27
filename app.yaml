@@ -10,7 +10,13 @@ static_sites:
         value: https://ynxlxtnewvirkjiutvcj.supabase.co
       - key: VITE_SUPABASE_PUBLISHABLE_KEY
         scope: BUILD_TIME
-        value: sb_publishable_4MqwIl6ZuOEizYaFWds0Xw_g9mdZeE1
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueGx4dG5ld3ZpcmtqaXV0dmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NjEwMzAsImV4cCI6MjA5MjUzNzAzMH0.w63uViLGsQaWh2sg49z_OXQkhgI4FC6-qmz-f0wduPk
       - key: VITE_SUPABASE_PROJECT_ID
         scope: BUILD_TIME
         value: ynxlxtnewvirkjiutvcj
+      - key: SUPABASE_URL
+        scope: RUN_TIME
+        value: https://ynxlxtnewvirkjiutvcj.supabase.co
+      - key: SUPABASE_PUBLISHABLE_KEY
+        scope: RUN_TIME
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueGx4dG5ld3ZpcmtqaXV0dmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NjEwMzAsImV4cCI6MjA5MjUzNzAzMH0.w63uViLGsQaWh2sg49z_OXQkhgI4FC6-qmz-f0wduPk
