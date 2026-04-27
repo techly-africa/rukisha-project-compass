@@ -669,25 +669,16 @@ function TaskRow({
     : planLeft;
 
   // Calculate effective actual duration:
-  // If complete, use actualDuration. 
-  // If not complete, stretch from start to today if today is later.
-  const startISO = task.actualStart || task.planStart;
-  const isComplete = task.percentComplete >= 100;
-  let effectiveDur = task.actualDuration || task.planDuration;
-
-  if (!isComplete) {
-    const daysSinceStart = daysBetween(startISO, today);
-    if (daysSinceStart > effectiveDur) {
-      effectiveDur = daysSinceStart;
-    }
-  }
+  // Use actualDuration if set (from Actual Finish in UI), otherwise fallback to planDuration.
+  const effectiveDur = task.actualDuration || task.planDuration;
   const actualWidth = effectiveDur * DAY_W;
 
   // Determine actual bar color
   const planEnd = dateAdd(task.planStart, task.planDuration);
   const actualEnd = task.actualStart ? dateAdd(task.actualStart, task.actualDuration) : "";
-  const isOverrun = today > planEnd && !isComplete;
+  const isComplete = task.percentComplete >= 100;
   const isProgressing = task.percentComplete > 0 && !isComplete;
+  const isOverrun = today > planEnd && !isComplete;
 
   let barColor = "var(--rk-bar-progress)";
   if (isComplete) barColor = "var(--rk-bar-done)";
