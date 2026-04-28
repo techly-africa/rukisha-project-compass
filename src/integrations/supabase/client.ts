@@ -5,9 +5,21 @@ import type { Database } from "./types";
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const SUPABASE_PUBLISHABLE_KEY =
+  let SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  let SUPABASE_PUBLISHABLE_KEY =
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+
+  // Hard fallback for DigitalOcean App Platform if env vars are malformed or missing
+  const FALLBACK_URL = "https://ynxlxtnewvirkjiutvcj.supabase.co";
+  const FALLBACK_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueGx4dG5ld3ZpcmtqaXV0dmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NjEwMzAsImV4cCI6MjA5MjUzNzAzMH0.w63uViLGsQaWh2sg49z_OXQkhgI4FC6-qmz-f0wduPk";
+
+  if (!SUPABASE_URL || SUPABASE_URL.includes("$") || SUPABASE_URL.includes(".com") || SUPABASE_URL === "undefined") {
+    SUPABASE_URL = FALLBACK_URL;
+  }
+  
+  if (!SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY.includes("$") || SUPABASE_PUBLISHABLE_KEY === "undefined") {
+    SUPABASE_PUBLISHABLE_KEY = FALLBACK_KEY;
+  }
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     throw new Error(
