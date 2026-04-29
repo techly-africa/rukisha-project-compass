@@ -212,6 +212,42 @@ export type Database = {
           },
         ];
       };
+      rk_task_dependencies: {
+        Row: {
+          id: string;
+          task_id: string;
+          depends_on_task_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          depends_on_task_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          depends_on_task_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rk_task_dependencies_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "rk_tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rk_task_dependencies_depends_on_task_id_fkey";
+            columns: ["depends_on_task_id"];
+            isOneToOne: false;
+            referencedRelation: "rk_tasks";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

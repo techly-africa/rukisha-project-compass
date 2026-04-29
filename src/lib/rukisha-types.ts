@@ -24,6 +24,7 @@ export interface Task {
   actualDuration: number; // days
   percentComplete: number; // 0-100
   subTasks?: SubTask[];
+  dependencies?: string[];
 }
 
 export interface Section {

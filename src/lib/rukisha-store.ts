@@ -89,7 +89,7 @@ type DbSubTask = { id: string; task_id: string; title: string; is_completed: boo
 function mapSection(s: DbSection): Section {
   return { id: s.id, name: s.name, color: s.color };
 }
-function mapTask(t: DbTask, subtasks: DbSubTask[] = []): Task {
+function mapTask(t: DbTask, subtasks: DbSubTask[] = [], dependencies: string[] = []): Task {
   return {
     id: t.id,
     sectionId: t.section_id,
@@ -101,6 +101,7 @@ function mapTask(t: DbTask, subtasks: DbSubTask[] = []): Task {
     actualDuration: t.actual_duration,
     percentComplete: t.percent_complete,
     subTasks: subtasks.map(mapSubTask),
+    dependencies,
   };
 }
 function mapSubTask(s: DbSubTask) {
@@ -113,7 +114,7 @@ function mapStakeholder(s: DbStakeholder): Stakeholder {
 // --- Load + Realtime ---
 async function loadAll(id?: string) {
   if (loadingPromise && !id) return loadingPromise;
-  
+
   loadingPromise = (async () => {
     const email = (
       typeof window !== "undefined" ? localStorage.getItem("rk-email") : null
@@ -130,14 +131,17 @@ async function loadAll(id?: string) {
     }
     noEmailHandled = false; // Reset if email appears
     const normalized = email.trim().toLowerCase();
-    
+
     if (userEmail === normalized && loaded && !id) return;
-    
+
     userEmail = normalized;
 
-    const { data: projectListRaw, error: listErr } = await (supabase as any).rpc("get_user_projects", {
-      p_email: userEmail
-    });
+    const { data: projectListRaw, error: listErr } = await (supabase as any).rpc(
+      "get_user_projects",
+      {
+        p_email: userEmail,
+      },
+    );
 
     if (listErr) {
       console.error("Discovery failed:", listErr);
@@ -150,7 +154,7 @@ async function loadAll(id?: string) {
       goLiveDate: p.go_live_date,
       updatedAt: p.updated_at,
       isArchived: p.is_archived,
-      progress: Number(p.progress || 0)
+      progress: Number(p.progress || 0),
     }));
 
     const { data: adminData } = await (supabase as any)
@@ -190,18 +194,46 @@ async function loadAll(id?: string) {
       emit();
     }
 
-    const [{ data: project }, { data: sections }, { data: tasks }, { data: stakeholders }, { data: teamMember }] = await Promise.all([
+    const [
+      { data: project },
+      { data: sections },
+      { data: tasks },
+      { data: stakeholders },
+      { data: teamMember },
+    ] = await Promise.all([
       supabase.from("rk_project").select("*").eq("id", targetId).maybeSingle(),
       supabase.from("rk_sections").select("*").eq("project_id", targetId).order("position"),
       supabase.from("rk_tasks").select("*").eq("project_id", targetId).order("position"),
       supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
-      supabase.from("rk_team").select("role").eq("project_id", targetId).eq("email", userEmail).maybeSingle(),
+      supabase
+        .from("rk_team")
+        .select("role")
+        .eq("project_id", targetId)
+        .eq("email", userEmail)
+        .maybeSingle(),
     ]);
 
-    const { data: subtasks } = await supabase
-      .from("rk_subtasks")
-      .select("*")
-      .in("task_id", (tasks || []).map((t) => t.id));
+    let subtasks: any[] = [];
+    let dependencies: any[] = [];
+    if (tasks && tasks.length > 0) {
+      const { data: stData } = await supabase
+        .from("rk_subtasks")
+        .select("*")
+        .in(
+          "task_id",
+          tasks.map((t) => t.id),
+        );
+      subtasks = stData || [];
+
+      const { data: depsData } = await supabase
+        .from("rk_task_dependencies")
+        .select("*")
+        .in(
+          "task_id",
+          tasks.map((t) => t.id),
+        );
+      dependencies = depsData || [];
+    }
 
     if (!project) {
       setState((s) => ({ ...s, id: null, userProjects: projectList, userEmail, isSuperAdmin }));
@@ -210,7 +242,8 @@ async function loadAll(id?: string) {
       return;
     }
 
-    const localDark = typeof window !== "undefined" ? localStorage.getItem("rk-dark") === "1" : false;
+    const localDark =
+      typeof window !== "undefined" ? localStorage.getItem("rk-dark") === "1" : false;
 
     const newState: ProjectState = {
       id: project.id,
@@ -218,7 +251,13 @@ async function loadAll(id?: string) {
       goLiveDate: project.go_live_date,
       stakeholders: (stakeholders || []).map(mapStakeholder),
       sections: (sections || []).map(mapSection),
-      tasks: (tasks || []).map((t) => mapTask(t, (subtasks || []).filter((st: any) => st.task_id === t.id))),
+      tasks: (tasks || []).map((t) =>
+        mapTask(
+          t,
+          (subtasks || []).filter((st: any) => st.task_id === t.id),
+          (dependencies || []).filter((d: any) => d.task_id === t.id).map((d: any) => d.depends_on_task_id)
+        ),
+      ),
       darkMode: localDark,
       userProjects: projectList,
       userEmail,
@@ -233,36 +272,48 @@ async function loadAll(id?: string) {
   })().finally(() => {
     loadingPromise = null;
   });
-  
+
   return loadingPromise;
 }
 
 function startRealtime() {
   if (!projectId) return;
-  
+
   if (currentChannel) {
     supabase.removeChannel(currentChannel);
   }
 
   currentChannel = supabase
     .channel(`project-${projectId}`)
-    .on("postgres_changes", { 
-        event: "*", 
-        schema: "public", 
-        table: "rk_tasks", 
-        filter: `project_id=eq.${projectId}` 
-    }, () => loadAll())
-    .on("postgres_changes", { 
-        event: "*", 
-        schema: "public", 
-        table: "rk_project", 
-        filter: `id=eq.${projectId}` 
-    }, () => loadAll())
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "rk_tasks",
+        filter: `project_id=eq.${projectId}`,
+      },
+      () => loadAll(),
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "rk_project",
+        filter: `id=eq.${projectId}`,
+      },
+      () => loadAll(),
+    )
     .subscribe();
 }
 
 export function useProject(): ProjectState {
-  return useSyncExternalStore(subscribe, () => state, () => emptyState);
+  return useSyncExternalStore(
+    subscribe,
+    () => state,
+    () => emptyState,
+  );
 }
 
 export function useHydratedProject(id?: string) {
@@ -276,7 +327,11 @@ export function useHydratedProject(id?: string) {
 }
 
 export function useIsLoaded(): boolean {
-  return useSyncExternalStore(subscribe, () => loaded, () => false);
+  return useSyncExternalStore(
+    subscribe,
+    () => loaded,
+    () => false,
+  );
 }
 
 // --- Combined Actions ---
@@ -284,12 +339,18 @@ export const actions = {
   async setProjectName(name: string) {
     if (!projectId) return;
     setState((s: ProjectState) => ({ ...s, projectName: name }));
-    await supabase.from("rk_project").update({ name, updated_at: new Date().toISOString() }).eq("id", projectId);
+    await supabase
+      .from("rk_project")
+      .update({ name, updated_at: new Date().toISOString() })
+      .eq("id", projectId);
   },
   async setGoLive(date: string) {
     if (!projectId) return;
     setState((s: ProjectState) => ({ ...s, goLiveDate: date }));
-    await supabase.from("rk_project").update({ go_live_date: date, updated_at: new Date().toISOString() }).eq("id", projectId);
+    await supabase
+      .from("rk_project")
+      .update({ go_live_date: date, updated_at: new Date().toISOString() })
+      .eq("id", projectId);
   },
   toggleDark() {
     setState((s: ProjectState) => {
@@ -300,11 +361,18 @@ export const actions = {
   },
   async addStakeholder(name: string, role: string) {
     if (!projectId) return;
-    const { data } = await supabase.from("rk_stakeholders").insert({ project_id: projectId, name, role }).select().single();
+    const { data } = await supabase
+      .from("rk_stakeholders")
+      .insert({ project_id: projectId, name, role })
+      .select()
+      .single();
     if (data) setState((s) => ({ ...s, stakeholders: [...s.stakeholders, mapStakeholder(data)] }));
   },
   async updateStakeholder(id: string, patch: Partial<Stakeholder>) {
-    setState((s) => ({ ...s, stakeholders: s.stakeholders.map((st) => (st.id === id ? { ...st, ...patch } : st)) }));
+    setState((s) => ({
+      ...s,
+      stakeholders: s.stakeholders.map((st) => (st.id === id ? { ...st, ...patch } : st)),
+    }));
     try {
       const { error } = await supabase.from("rk_stakeholders").update(patch).eq("id", id);
       if (error) throw error;
@@ -333,8 +401,10 @@ export const actions = {
         p_plan_start: patch.planStart !== undefined ? patch.planStart : task.planStart,
         p_plan_duration: patch.planDuration !== undefined ? patch.planDuration : task.planDuration,
         p_actual_start: patch.actualStart !== undefined ? patch.actualStart : task.actualStart,
-        p_actual_duration: patch.actualDuration !== undefined ? patch.actualDuration : task.actualDuration,
-        p_percent_complete: patch.percentComplete !== undefined ? patch.percentComplete : task.percentComplete,
+        p_actual_duration:
+          patch.actualDuration !== undefined ? patch.actualDuration : task.actualDuration,
+        p_percent_complete:
+          patch.percentComplete !== undefined ? patch.percentComplete : task.percentComplete,
         p_section_id: patch.sectionId !== undefined ? patch.sectionId : task.sectionId,
       });
       if (error) throw error;
@@ -347,17 +417,21 @@ export const actions = {
   async addTask(sectionId: string) {
     if (!projectId) return;
     try {
-      const { data, error } = await supabase.from("rk_tasks").insert({
-        project_id: projectId,
-        section_id: sectionId,
-        activity: "New task",
-        owner: "",
-        plan_start: todayISO(),
-        plan_duration: 5,
-        actual_duration: 0,
-        percent_complete: 0,
-        position: state.tasks.length,
-      }).select().single();
+      const { data, error } = await supabase
+        .from("rk_tasks")
+        .insert({
+          project_id: projectId,
+          section_id: sectionId,
+          activity: "New task",
+          owner: "",
+          plan_start: todayISO(),
+          plan_duration: 5,
+          actual_duration: 0,
+          percent_complete: 0,
+          position: state.tasks.length,
+        })
+        .select()
+        .single();
       if (error) throw error;
       if (data) setState((s) => ({ ...s, tasks: [...s.tasks, mapTask(data as DbTask)] }));
     } catch (err) {
@@ -378,19 +452,32 @@ export const actions = {
     const [removed] = tasks.splice(idx, 1);
     tasks.splice(target, 0, removed);
     setState((s: ProjectState) => ({ ...s, tasks }));
-    await Promise.all(tasks.map((t, i) => supabase.from("rk_tasks").update({ position: i }).eq("id", t.id)));
+    await Promise.all(
+      tasks.map((t, i) => supabase.from("rk_tasks").update({ position: i }).eq("id", t.id)),
+    );
   },
   async addSection(name: string) {
     if (!projectId) return;
-    const { data } = await supabase.from("rk_sections").insert({ project_id: projectId, name, color: "#2E75B6", position: state.sections.length }).select().single();
+    const { data } = await supabase
+      .from("rk_sections")
+      .insert({ project_id: projectId, name, color: "#2E75B6", position: state.sections.length })
+      .select()
+      .single();
     if (data) setState((s) => ({ ...s, sections: [...s.sections, mapSection(data as DbSection)] }));
   },
   async updateSection(id: string, patch: Partial<Section>) {
-    setState((s) => ({ ...s, sections: s.sections.map((sec) => (sec.id === id ? { ...sec, ...patch } : sec)) }));
+    setState((s) => ({
+      ...s,
+      sections: s.sections.map((sec) => (sec.id === id ? { ...sec, ...patch } : sec)),
+    }));
     await supabase.from("rk_sections").update(patch).eq("id", id);
   },
   async deleteSection(id: string) {
-    setState((s) => ({ ...s, sections: s.sections.filter((sec) => sec.id !== id), tasks: s.tasks.filter((t) => t.sectionId !== id) }));
+    setState((s) => ({
+      ...s,
+      sections: s.sections.filter((sec) => sec.id !== id),
+      tasks: s.tasks.filter((t) => t.sectionId !== id),
+    }));
     await supabase.from("rk_sections").delete().eq("id", id);
   },
   async reset() {
@@ -415,9 +502,15 @@ export const actions = {
   },
   async createProject(name: string) {
     const email = localStorage.getItem("rk-email")?.toLowerCase();
-    const { data: project } = await supabase.from("rk_project").insert({ name, go_live_date: todayISO(28) }).select().single();
+    const { data: project } = await supabase
+      .from("rk_project")
+      .insert({ name, go_live_date: todayISO(28) })
+      .select()
+      .single();
     if (project && email) {
-      await supabase.from("rk_team").insert({ project_id: project.id, email, name: email.split("@")[0], role: 'PM' });
+      await supabase
+        .from("rk_team")
+        .insert({ project_id: project.id, email, name: email.split("@")[0], role: "PM" });
       await loadAll(project.id);
       return project.id;
     }
@@ -426,38 +519,121 @@ export const actions = {
     await loadAll(id);
   },
   async addSubTask(taskId: string, title: string) {
-    const { data } = await supabase.from("rk_subtasks").insert({ task_id: taskId, title, is_completed: false }).select().single();
+    const { data, error } = await supabase
+      .from("rk_subtasks")
+      .insert({ task_id: taskId, title, is_completed: false })
+      .select()
+      .single();
+    if (error) {
+      console.error("Failed to add subtask:", error);
+      toast.error("Failed to add checklist item: " + error.message);
+      return;
+    }
     if (data) {
       const task = state.tasks.find((t) => t.id === taskId);
       if (task) {
         const newSubTasks = [...(task.subTasks || []), mapSubTask(data as DbSubTask)];
-        const pct = Math.round((newSubTasks.filter(st => st.isCompleted).length / newSubTasks.length) * 100);
+        const pct = Math.round(
+          (newSubTasks.filter((st) => st.isCompleted).length / newSubTasks.length) * 100,
+        );
+
+        setState((s) => ({
+          ...s,
+          tasks: s.tasks.map((t) =>
+            t.id === taskId ? { ...t, subTasks: newSubTasks, percentComplete: pct } : t,
+          ),
+        }));
+
         await this.updateTask(taskId, { percentComplete: pct });
         await loadAll();
       }
     }
   },
   async toggleSubTask(taskId: string, subTaskId: string, isCompleted: boolean) {
-    await supabase.from("rk_subtasks").update({ is_completed: isCompleted }).eq("id", subTaskId);
+    const { error } = await supabase
+      .from("rk_subtasks")
+      .update({ is_completed: isCompleted })
+      .eq("id", subTaskId);
+    if (error) {
+      console.error("Failed to toggle subtask:", error);
+      toast.error("Failed to update checklist item: " + error.message);
+      return;
+    }
     const task = state.tasks.find((t) => t.id === taskId);
     if (task) {
-      const newSubTasks = (task.subTasks || []).map(st => st.id === subTaskId ? { ...st, isCompleted } : st);
-      const pct = Math.round((newSubTasks.filter(st => st.isCompleted).length / newSubTasks.length) * 100);
+      const newSubTasks = (task.subTasks || []).map((st) =>
+        st.id === subTaskId ? { ...st, isCompleted } : st,
+      );
+      const pct = Math.round(
+        (newSubTasks.filter((st) => st.isCompleted).length / newSubTasks.length) * 100,
+      );
+
+      setState((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) =>
+          t.id === taskId ? { ...t, subTasks: newSubTasks, percentComplete: pct } : t,
+        ),
+      }));
+
       await this.updateTask(taskId, { percentComplete: pct });
       await loadAll();
     }
   },
   async deleteSubTask(taskId: string, subTaskId: string) {
-    await supabase.from("rk_subtasks").delete().eq("id", subTaskId);
+    const { error } = await supabase.from("rk_subtasks").delete().eq("id", subTaskId);
+    if (error) {
+      console.error("Failed to delete subtask:", error);
+      toast.error("Failed to delete checklist item: " + error.message);
+      return;
+    }
     const task = state.tasks.find((t) => t.id === taskId);
     if (task) {
-      const newSubTasks = (task.subTasks || []).filter(st => st.id !== subTaskId);
-      const pct = newSubTasks.length > 0 
-        ? Math.round((newSubTasks.filter(st => st.isCompleted).length / newSubTasks.length) * 100)
-        : task.percentComplete;
+      const newSubTasks = (task.subTasks || []).filter((st) => st.id !== subTaskId);
+      const pct =
+        newSubTasks.length > 0
+          ? Math.round(
+              (newSubTasks.filter((st) => st.isCompleted).length / newSubTasks.length) * 100,
+            )
+          : task.percentComplete;
+
+      setState((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) =>
+          t.id === taskId ? { ...t, subTasks: newSubTasks, percentComplete: pct } : t,
+        ),
+      }));
+
       await this.updateTask(taskId, { percentComplete: pct });
       await loadAll();
     }
+  },
+  async addDependency(taskId: string, dependsOnTaskId: string) {
+    const { data, error } = await supabase.from("rk_task_dependencies").insert({ task_id: taskId, depends_on_task_id: dependsOnTaskId }).select().single();
+    if (error) {
+      console.error("Failed to add dependency:", error);
+      toast.error("Failed to add dependency: " + error.message);
+      return;
+    }
+    if (data) {
+      setState((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) => t.id === taskId ? { ...t, dependencies: [...(t.dependencies || []), dependsOnTaskId] } : t)
+      }));
+      await loadAll();
+    }
+  },
+  async removeDependency(taskId: string, dependsOnTaskId: string) {
+    const { error } = await supabase.from("rk_task_dependencies").delete().eq("task_id", taskId).eq("depends_on_task_id", dependsOnTaskId);
+    if (error) {
+      console.error("Failed to remove dependency:", error);
+      toast.error("Failed to remove dependency: " + error.message);
+      return;
+    }
+    setState((s) => ({
+      ...s,
+      tasks: s.tasks.map((t) => t.id === taskId ? { ...t, dependencies: (t.dependencies || []).filter(d => d !== dependsOnTaskId) } : t)
+    }));
+    await loadAll();
   },
   importState(_next: ProjectState) {
     console.warn("importState is disabled when synced to Cloud.");
