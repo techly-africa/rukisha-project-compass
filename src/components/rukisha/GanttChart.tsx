@@ -144,15 +144,16 @@ function EditableCell({
 function OwnerCell({
   value,
   stakeholders,
+  teamMembers = [],
   onChange,
   disabled = false,
 }: {
   value: string;
   stakeholders: Stakeholder[];
+  teamMembers?: { id: string; email: string; name: string }[];
   onChange: (v: string) => void;
   disabled?: boolean;
 }) {
-  const [editing, setEditing] = useState(false);
   const selectedNames = useMemo(
     () =>
       value
@@ -163,14 +164,16 @@ function OwnerCell({
   );
 
   const toggle = (name: string) => {
-    let next;
-    if (selectedNames.includes(name)) {
-      next = selectedNames.filter((n) => n !== name).join(", ");
-    } else {
-      next = [...selectedNames, name].join(", ");
-    }
+    const next = selectedNames.includes(name)
+      ? selectedNames.filter((n) => n !== name).join(", ")
+      : [...selectedNames, name].join(", ");
     onChange(next);
   };
+
+  const allSuggestions = [
+    ...teamMembers.map((m) => m.name),
+    ...stakeholders.map((s) => s.name).filter((n) => !teamMembers.find((m) => m.name === n)),
+  ];
 
   return (
     <Popover>
@@ -194,39 +197,65 @@ function OwnerCell({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="start">
-        <div className="space-y-1 mb-2">
-          <div className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
-            Stakeholders
-          </div>
-          {stakeholders.length === 0 && (
-            <div className="text-[11px] text-muted-foreground px-2 py-2">
-              No stakeholders defined in setup.
+        {teamMembers.length > 0 && (
+          <div className="space-y-1 mb-2">
+            <div className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
+              Team Members
             </div>
-          )}
-          {stakeholders.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => toggle(s.name)}
-              className="flex w-full items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors text-left"
-            >
-              <div
-                className={`h-4 w-4 rounded border flex items-center justify-center ${selectedNames.includes(s.name) ? "bg-[var(--rk-navy)] border-[var(--rk-navy)] text-white" : "border-border"}`}
+            {teamMembers.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => !disabled && toggle(m.name)}
+                className="flex w-full items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors text-left"
               >
-                {selectedNames.includes(s.name) && <Check className="h-3 w-3" />}
-              </div>
-              <div className="flex-1">
-                <div className="font-medium">{s.name}</div>
-                <div className="text-[10px] text-muted-foreground">{s.role}</div>
-              </div>
-            </button>
-          ))}
-        </div>
+                <div
+                  className={`h-4 w-4 rounded border flex items-center justify-center ${selectedNames.includes(m.name) ? "bg-[var(--rk-navy)] border-[var(--rk-navy)] text-white" : "border-border"}`}
+                >
+                  {selectedNames.includes(m.name) && <Check className="h-3 w-3" />}
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">{m.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{m.email}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        {stakeholders.length > 0 && (
+          <div className="space-y-1 mb-2">
+            <div className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
+              Stakeholders
+            </div>
+            {stakeholders.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => !disabled && toggle(s.name)}
+                className="flex w-full items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors text-left"
+              >
+                <div
+                  className={`h-4 w-4 rounded border flex items-center justify-center ${selectedNames.includes(s.name) ? "bg-[var(--rk-navy)] border-[var(--rk-navy)] text-white" : "border-border"}`}
+                >
+                  {selectedNames.includes(s.name) && <Check className="h-3 w-3" />}
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">{s.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{s.role}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        {teamMembers.length === 0 && stakeholders.length === 0 && (
+          <div className="text-[11px] text-muted-foreground px-2 py-2">
+            No team members or stakeholders defined in setup.
+          </div>
+        )}
         <div className="border-t border-border pt-2">
           <EditableCell
             value={value}
             onChange={onChange}
             className="bg-muted/30 px-2 py-1.5 focus:bg-background"
-            suggestions={stakeholders.map((s) => s.name)}
+            suggestions={allSuggestions}
             disabled={disabled}
           />
           <div className="text-[9px] text-muted-foreground px-2 mt-1">
@@ -555,6 +584,8 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
   const isPM = state.isSuperAdmin || state.userRole === "PM";
   const [newSubTask, setNewSubTask] = useState("");
   const [selectedDependency, setSelectedDependency] = useState("");
+  const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null);
+  const [editingSubTaskTitle, setEditingSubTaskTitle] = useState("");
 
   const completedCount = task.subTasks?.filter((st) => st.isCompleted).length || 0;
   const totalCount = task.subTasks?.length || 0;
@@ -602,22 +633,62 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
 
             <div className="space-y-2 max-h-[250px] overflow-auto pr-2">
               {task.subTasks?.map((st) => (
-                <div key={st.id} className="flex items-center gap-3 group px-1 py-0.5 rounded hover:bg-muted/30">
+                <div key={st.id} className="flex items-center gap-2 group px-1 py-0.5 rounded hover:bg-muted/30">
                   <input
                     type="checkbox"
                     checked={st.isCompleted}
                     onChange={(e) => actions.toggleSubTask(task.id, st.id, e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-[var(--rk-navy)] focus:ring-[var(--rk-navy)] cursor-pointer"
+                    className="h-4 w-4 shrink-0 rounded border-gray-300 text-[var(--rk-navy)] focus:ring-[var(--rk-navy)] cursor-pointer"
                   />
-                  <span
-                    className={`flex-1 text-sm ${st.isCompleted ? "line-through text-muted-foreground" : "text-foreground"}`}
-                  >
-                    {st.title}
-                  </span>
+                  {editingSubTaskId === st.id ? (
+                    <input
+                      autoFocus
+                      value={editingSubTaskTitle}
+                      onChange={(e) => setEditingSubTaskTitle(e.target.value)}
+                      onBlur={() => {
+                        if (editingSubTaskTitle.trim() && editingSubTaskTitle !== st.title) {
+                          actions.updateSubTask(task.id, st.id, { title: editingSubTaskTitle.trim() });
+                        }
+                        setEditingSubTaskId(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") setEditingSubTaskId(null);
+                      }}
+                      className="flex-1 text-sm border-b border-[var(--rk-navy)] bg-transparent outline-none py-0.5"
+                    />
+                  ) : (
+                    <span
+                      onClick={() => {
+                        if (isPM) {
+                          setEditingSubTaskId(st.id);
+                          setEditingSubTaskTitle(st.title);
+                        }
+                      }}
+                      title={isPM ? "Click to edit" : undefined}
+                      className={`flex-1 text-sm ${st.isCompleted ? "line-through text-muted-foreground" : "text-foreground"} ${isPM ? "cursor-text hover:text-[var(--rk-navy)]" : ""}`}
+                    >
+                      {st.title}
+                    </span>
+                  )}
+                  {state.teamMembers.length > 0 && (
+                    <select
+                      value={st.assignee || ""}
+                      onChange={(e) => actions.updateSubTask(task.id, st.id, { assignee: e.target.value })}
+                      disabled={!isPM}
+                      className="shrink-0 text-[10px] border border-border rounded px-1 py-0.5 bg-transparent max-w-[90px] text-muted-foreground focus:outline-none"
+                      title="Assign to"
+                    >
+                      <option value="">Unassigned</option>
+                      {state.teamMembers.map((m) => (
+                        <option key={m.id} value={m.name}>{m.name}</option>
+                      ))}
+                    </select>
+                  )}
                   {isPM && (
                     <button
                       onClick={() => actions.deleteSubTask(task.id, st.id)}
-                      className="opacity-0 group-hover:opacity-100 text-xs text-muted-foreground hover:text-[var(--rk-danger)] transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 text-xs text-muted-foreground hover:text-[var(--rk-danger)] transition-opacity shrink-0"
                     >
                       ✕
                     </button>
@@ -850,6 +921,7 @@ function TaskRow({
               <OwnerCell
                 value={task.owner}
                 stakeholders={state.stakeholders}
+                teamMembers={state.teamMembers}
                 onChange={(v) => actions.updateTask(task.id, { owner: v })}
                 disabled={!isPM}
               />

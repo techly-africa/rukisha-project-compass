@@ -187,6 +187,7 @@ export type Database = {
           title: string;
           is_completed: boolean;
           created_at: string;
+          assignee: string;
         };
         Insert: {
           id?: string;
@@ -194,6 +195,7 @@ export type Database = {
           title: string;
           is_completed?: boolean;
           created_at?: string;
+          assignee?: string;
         };
         Update: {
           id?: string;
@@ -201,6 +203,7 @@ export type Database = {
           title?: string;
           is_completed?: boolean;
           created_at?: string;
+          assignee?: string;
         };
         Relationships: [
           {

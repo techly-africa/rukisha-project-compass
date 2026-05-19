@@ -11,6 +11,7 @@ export interface SubTask {
   taskId: string;
   title: string;
   isCompleted: boolean;
+  assignee?: string;
 }
 
 export interface Task {
@@ -55,6 +56,7 @@ export interface ProjectState {
   stakeholders: Stakeholder[];
   sections: Section[];
   tasks: Task[];
+  teamMembers: TeamMember[];
   darkMode: boolean;
   userProjects: ProjectInfo[];
   userEmail: string | null;

@@ -37,6 +37,7 @@ const emptyState: ProjectState = {
   stakeholders: [],
   sections: [],
   tasks: [],
+  teamMembers: [],
   darkMode: false,
   userProjects: [],
   userEmail: null,
@@ -105,7 +106,7 @@ function mapTask(t: DbTask, subtasks: DbSubTask[] = [], dependencies: string[] =
   };
 }
 function mapSubTask(s: DbSubTask) {
-  return { id: s.id, taskId: s.task_id, title: s.title, isCompleted: s.is_completed };
+  return { id: s.id, taskId: s.task_id, title: s.title, isCompleted: s.is_completed, assignee: (s as any).assignee ?? "" };
 }
 function mapStakeholder(s: DbStakeholder): Stakeholder {
   return { id: s.id, name: s.name, role: s.role };
@@ -200,6 +201,7 @@ async function loadAll(id?: string) {
       { data: tasks },
       { data: stakeholders },
       { data: teamMember },
+      { data: allTeamMembers },
     ] = await Promise.all([
       supabase.from("rk_project").select("*").eq("id", targetId).maybeSingle(),
       supabase.from("rk_sections").select("*").eq("project_id", targetId).order("position"),
@@ -211,6 +213,11 @@ async function loadAll(id?: string) {
         .eq("project_id", targetId)
         .eq("email", userEmail)
         .maybeSingle(),
+      supabase
+        .from("rk_team")
+        .select("id, email, name")
+        .eq("project_id", targetId)
+        .order("name"),
     ]);
 
     let subtasks: any[] = [];
@@ -258,6 +265,7 @@ async function loadAll(id?: string) {
           (dependencies || []).filter((d: any) => d.task_id === t.id).map((d: any) => d.depends_on_task_id)
         ),
       ),
+      teamMembers: (allTeamMembers || []).map((m: any) => ({ id: m.id, email: m.email, name: m.name || m.email })),
       darkMode: localDark,
       userProjects: projectList,
       userEmail,
@@ -606,6 +614,30 @@ export const actions = {
       await this.updateTask(taskId, { percentComplete: pct });
       await loadAll();
     }
+  },
+  async updateSubTask(taskId: string, subTaskId: string, patch: { title?: string; assignee?: string }) {
+    const task = state.tasks.find((t) => t.id === taskId);
+    const current = task?.subTasks?.find((st) => st.id === subTaskId);
+    if (!current) return;
+
+    const { error } = await (supabase as any).rpc("update_subtask_secure", {
+      p_id: subTaskId,
+      p_title: patch.title !== undefined ? patch.title : current.title,
+      p_assignee: patch.assignee !== undefined ? patch.assignee : (current.assignee ?? ""),
+    });
+    if (error) {
+      console.error("Failed to update subtask:", error);
+      toast.error("Failed to update checklist item: " + error.message);
+      return;
+    }
+    setState((s) => ({
+      ...s,
+      tasks: s.tasks.map((t) =>
+        t.id === taskId
+          ? { ...t, subTasks: (t.subTasks || []).map((st) => (st.id === subTaskId ? { ...st, ...patch } : st)) }
+          : t,
+      ),
+    }));
   },
   async addDependency(taskId: string, dependsOnTaskId: string) {
     const { data, error } = await supabase.from("rk_task_dependencies").insert({ task_id: taskId, depends_on_task_id: dependsOnTaskId }).select().single();
