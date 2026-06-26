@@ -1,0 +1,14 @@
+# Nixpacks configuration file
+# This file is used to customize the build and run phases on hosting providers (like Railway, Coolify, etc.) using Nixpacks.
+
+[variables]
+NODE_ENV = "production"
+
+[phases.setup]
+nixPkgs = ["...", "nodejs_22"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "node migrate.cjs && node server.cjs"
