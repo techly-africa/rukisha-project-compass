@@ -92,10 +92,8 @@ export function EmailGate({ children }: { children: ReactNode }) {
           <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--rk-navy)] text-[var(--rk-gold)] shadow-sm">
             <Compass className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Avel Compass</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Premium project portfolio for Rukisha.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">Project Compass</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Premium project portfolio.</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
@@ -103,7 +101,7 @@ export function EmailGate({ children }: { children: ReactNode }) {
             <div>
               <h2 className="text-lg font-semibold">Secure Access</h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Enter your whitelisted email to receive access to the Avel Portfolio.
+                Enter your whitelisted email to receive access to Project Compass.
               </p>
             </div>
 
@@ -141,7 +139,7 @@ export function EmailGate({ children }: { children: ReactNode }) {
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Avel Africa.
+          &copy; {new Date().getFullYear()} Project Compass.
         </p>
       </div>
     </div>

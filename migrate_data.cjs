@@ -69,13 +69,13 @@ async function run() {
       console.error(`Error fetching remote table ${table}:`, err.message);
       continue;
     }
-    
+
     console.log(`Found ${rows.length} rows on remote.`);
     if (rows.length === 0) continue;
 
     const keys = Object.keys(rows[0]);
     const cols = keys.map((k) => `"${k}"`).join(", ");
-    
+
     for (const row of rows) {
       const vals = keys.map((k) => row[k]);
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
@@ -83,7 +83,14 @@ async function run() {
       try {
         await client.query(query, vals);
       } catch (err) {
-        console.error(`Error inserting row into ${table}:`, err.message, "\nQuery:", query, "\nValues:", vals);
+        console.error(
+          `Error inserting row into ${table}:`,
+          err.message,
+          "\nQuery:",
+          query,
+          "\nValues:",
+          vals,
+        );
       }
     }
     console.log(`Successfully migrated ${rows.length} rows into ${table}.`);

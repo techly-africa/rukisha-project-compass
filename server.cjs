@@ -120,7 +120,9 @@ async function lookupProjectId(table, id) {
 app.post("/api/db", async (req, res) => {
   const { table, rpc, action, data, filters, order, limit, single } = req.body;
   const userEmail = req.headers["x-user-email"];
-  console.log(`[API DB] Request from ${userEmail}: table=${table}, rpc=${rpc}, action=${action}, data=${JSON.stringify(data)}, filters=${JSON.stringify(filters)}`);
+  console.log(
+    `[API DB] Request from ${userEmail}: table=${table}, rpc=${rpc}, action=${action}, data=${JSON.stringify(data)}, filters=${JSON.stringify(filters)}`,
+  );
 
   // Check simple authentication
   if (!userEmail) {
@@ -205,12 +207,10 @@ app.post("/api/db", async (req, res) => {
       console.log(
         `Forbidden database access attempt: table=${table}, rpc=${rpc}, action=${action} by ${userEmail}`,
       );
-      return res
-        .status(403)
-        .json({
-          data: null,
-          error: { message: "Forbidden: Insufficient privileges for this operation." },
-        });
+      return res.status(403).json({
+        data: null,
+        error: { message: "Forbidden: Insufficient privileges for this operation." },
+      });
     }
     // A. Handle RPC Calls
     if (rpc) {

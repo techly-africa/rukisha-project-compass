@@ -110,9 +110,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           {!isCollapsed && (
             <div className="animate-in fade-in slide-in-from-left-2 duration-300">
-              <div className="text-sm font-bold leading-tight tracking-tight">Avel Compass</div>
+              <div className="text-sm font-bold leading-tight tracking-tight">Project Compass</div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold italic">
-                Rukisha Portfolio
+                Project Portfolio
               </div>
             </div>
           )}
