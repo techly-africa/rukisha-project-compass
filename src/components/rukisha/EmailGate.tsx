@@ -44,6 +44,9 @@ export function EmailGate({ children }: { children: ReactNode }) {
     const email = emailInput.trim().toLowerCase();
 
     try {
+      // Temporarily store the email to allow the backend proxy to authenticate the bootstrapping queries
+      localStorage.setItem(EMAIL_KEY, email);
+
       // Use get_user_projects instead of check_access to avoid CORS issues.
       // If the user has at least one project OR is a superadmin, grant access.
       const [{ data: projects }, { data: adminRow }] = await Promise.all([
@@ -54,15 +57,16 @@ export function EmailGate({ children }: { children: ReactNode }) {
       const hasAccess = (projects && projects.length > 0) || !!adminRow;
 
       if (hasAccess) {
-        localStorage.setItem(EMAIL_KEY, email);
         // Trigger the store to load projects now that the email is saved
         actions.refreshProjects();
 
         setGateState("allowed");
       } else {
+        localStorage.removeItem(EMAIL_KEY);
         setError("This email is not on the project team. Contact your project admin.");
       }
     } catch {
+      localStorage.removeItem(EMAIL_KEY);
       setError("Connection error. Please check your network and try again.");
     }
 

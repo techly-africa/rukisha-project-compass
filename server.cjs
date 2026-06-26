@@ -144,6 +144,11 @@ app.post("/api/db", async (req, res) => {
     if (action === "select" || rpc === "get_user_projects") {
       if (table === "rk_superadmins") {
         allowed = true; // Anyone can check admin lists
+      } else if (rpc === "get_user_projects") {
+        // Enforce that the user can only query their own projects list
+        if (data && data.p_email && data.p_email.toLowerCase() === userEmail.toLowerCase()) {
+          allowed = true;
+        }
       } else if (table === "rk_project" && !projectId) {
         allowed = true; // get_user_projects RPC filters internally
       } else {
