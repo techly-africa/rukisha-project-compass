@@ -120,6 +120,7 @@ async function lookupProjectId(table, id) {
 app.post("/api/db", async (req, res) => {
   const { table, rpc, action, data, filters, order, limit, single } = req.body;
   const userEmail = req.headers["x-user-email"];
+  console.log(`[API DB] Request from ${userEmail}: table=${table}, rpc=${rpc}, action=${action}, data=${JSON.stringify(data)}, filters=${JSON.stringify(filters)}`);
 
   // Check simple authentication
   if (!userEmail) {
@@ -212,7 +213,7 @@ app.post("/api/db", async (req, res) => {
         });
     }
     // A. Handle RPC Calls
-    if (action === "rpc") {
+    if (rpc) {
       console.log(`Executing RPC: ${rpc} for ${userEmail}`);
       let result = null;
 

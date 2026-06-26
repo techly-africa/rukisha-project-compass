@@ -47,9 +47,17 @@ export default defineConfig(({ mode }) => {
       allowedHosts: ["lionfish-app-vrot8.ondigitalocean.app", ".ondigitalocean.app"],
       proxy: {
         "/api": {
-          target: "http://localhost:3000",
+          target: "http://127.0.0.1:3000",
           changeOrigin: true,
           secure: false,
+          configure: (proxy, options) => {
+            proxy.on("proxyReq", (proxyReq, req, _res) => {
+              console.log("[Vite Proxy] Forwarding:", req.method, req.url);
+            });
+            proxy.on("error", (err, _req, _res) => {
+              console.error("[Vite Proxy] Error:", err);
+            });
+          },
         },
       },
     },
