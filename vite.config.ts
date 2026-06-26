@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), "");
-  
+
   console.log("--- Build Configuration ---");
   console.log("Mode:", mode);
   console.log("Supabase URL:", env.VITE_SUPABASE_URL || env.SUPABASE_URL);
@@ -28,8 +28,12 @@ export default defineConfig(({ mode }) => {
     ],
     // Explicitly define env vars to ensure they are baked into the bundle
     define: {
-      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(env.VITE_SUPABASE_URL || env.SUPABASE_URL),
-      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY),
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
+        env.VITE_SUPABASE_URL || env.SUPABASE_URL,
+      ),
+      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+        env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY,
+      ),
     },
     resolve: {
       alias: {
@@ -40,14 +44,18 @@ export default defineConfig(({ mode }) => {
       port: 8080,
       strictPort: true,
       host: "0.0.0.0",
-      allowedHosts: [
-        "lionfish-app-vrot8.ondigitalocean.app",
-        ".ondigitalocean.app"
-      ]
+      allowedHosts: ["lionfish-app-vrot8.ondigitalocean.app", ".ondigitalocean.app"],
+      proxy: {
+        "/api": {
+          target: "http://localhost:3000",
+          changeOrigin: true,
+          secure: false,
+        },
+      },
     },
     build: {
       outDir: "dist",
       emptyOutDir: true,
-    }
+    },
   };
 });

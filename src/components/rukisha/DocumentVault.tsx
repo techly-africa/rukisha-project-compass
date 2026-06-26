@@ -1,18 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProject } from "@/lib/rukisha-store";
-import { 
-  File, 
-  Upload, 
-  Download, 
-  Trash2, 
-  FileText, 
-  FileImage, 
-  FileCode, 
+import {
+  File,
+  Upload,
+  Download,
+  Trash2,
+  FileText,
+  FileImage,
+  FileCode,
   MoreHorizontal,
   Search,
   HardDrive,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,9 +80,7 @@ export function DocumentVault() {
 
     try {
       // 1. Upload to Storage
-      const { error: storageErr } = await supabase.storage
-        .from("project_vault")
-        .upload(path, file);
+      const { error: storageErr } = await supabase.storage.from("project_vault").upload(path, file);
 
       if (storageErr) throw storageErr;
 
@@ -93,7 +91,7 @@ export function DocumentVault() {
         p_path: path,
         p_type: file.type,
         p_size: file.size,
-        p_email: userEmail
+        p_email: userEmail,
       });
 
       if (dbErr) throw dbErr;
@@ -135,7 +133,7 @@ export function DocumentVault() {
     try {
       // 1. Delete from storage
       await supabase.storage.from("project_vault").remove([doc.storage_path]);
-      
+
       // 2. Delete metadata
       await (supabase as any).from("rk_documents").delete().eq("id", doc.id);
 
@@ -149,9 +147,7 @@ export function DocumentVault() {
     }
   };
 
-  const filteredDocs = docs.filter(d => 
-    d.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredDocs = docs.filter((d) => d.name.toLowerCase().includes(search.toLowerCase()));
 
   const formatSize = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -164,7 +160,8 @@ export function DocumentVault() {
   const getIcon = (type: string) => {
     if (type.includes("pdf")) return <FileText className="h-5 w-5 text-red-500" />;
     if (type.includes("image")) return <FileImage className="h-5 w-5 text-blue-500" />;
-    if (type.includes("code") || type.includes("json")) return <FileCode className="h-5 w-5 text-green-500" />;
+    if (type.includes("code") || type.includes("json"))
+      return <FileCode className="h-5 w-5 text-green-500" />;
     return <File className="h-5 w-5 text-gray-500" />;
   };
 
@@ -184,26 +181,23 @@ export function DocumentVault() {
             <HardDrive className="h-8 w-8 text-[var(--rk-gold)]" />
             Document Vault
           </h1>
-          <p className="text-muted-foreground mt-1">Secure repository for mission-critical documentation.</p>
+          <p className="text-muted-foreground mt-1">
+            Secure repository for mission-critical documentation.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search documents..." 
+            <Input
+              placeholder="Search documents..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 bg-card border-border/50"
             />
           </div>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleUpload} 
-            className="hidden" 
-          />
-          <Button 
+          <input type="file" ref={fileInputRef} onChange={handleUpload} className="hidden" />
+          <Button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             className="bg-[var(--rk-navy)] text-white hover:bg-[var(--rk-navy)]/90 px-6 font-semibold"
@@ -266,18 +260,18 @@ export function DocumentVault() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 outline-none">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => downloadFile(doc)}
                           className="h-8 w-8 hover:text-[var(--rk-navy)]"
                           title="Download"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => setDocToDelete(doc)}
                           className="h-8 w-8 hover:text-red-500"
                           title="Delete"
@@ -302,13 +296,15 @@ export function DocumentVault() {
               Remove Document
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to PERMANENTLY remove <span className="text-[var(--rk-navy)] font-bold">"{docToDelete?.name}"</span> from the high-security vault?
-              This action will delete the physical file from storage and its metadata records.
+              Are you sure you want to PERMANENTLY remove{" "}
+              <span className="text-[var(--rk-navy)] font-bold">"{docToDelete?.name}"</span> from
+              the high-security vault? This action will delete the physical file from storage and
+              its metadata records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep Document</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => docToDelete && deleteFile(docToDelete)}
               className="bg-red-600 text-white hover:bg-red-700"
             >

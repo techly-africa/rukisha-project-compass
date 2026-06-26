@@ -1,0 +1,130 @@
+const { Client } = require("pg");
+const fs = require("fs");
+const path = require("path");
+require("dotenv").config();
+
+const dbUrl = process.env.DATABASE_URL;
+if (!dbUrl) {
+  console.error("Error: DATABASE_URL environment variable is not set in .env.");
+  process.exit(1);
+}
+
+async function run() {
+  console.log("Connecting to PostgreSQL...");
+  const client = new Client({ connectionString: dbUrl });
+
+  try {
+    await client.connect();
+  } catch (err) {
+    console.error("Failed to connect to database:", err.message);
+    process.exit(1);
+  }
+
+  console.log("Connected to database successfully.");
+
+  let sql;
+  try {
+    sql = fs.readFileSync(path.join(__dirname, "supabase_schema_backup.sql"), "utf8");
+  } catch (err) {
+    console.error("Failed to read supabase_schema_backup.sql:", err.message);
+    await client.end();
+    process.exit(1);
+  }
+
+  // Strip Supabase specific commands
+  const lines = sql.split("\n");
+  const cleanedLines = lines.map((line) => {
+    let cleaned = line;
+
+    // Remove custom role restrictions from policies (e.g. TO "authenticated", "anon")
+    if (cleaned.includes("CREATE POLICY") && cleaned.includes("TO ")) {
+      cleaned = cleaned.replace(/TO\s+"[a-zA-Z0-9_]+"(,\s*"[a-zA-Z0-9_]+")*/gi, "");
+    }
+
+    const trimmed = cleaned.trim();
+    if (trimmed.startsWith("CREATE EXTENSION")) return "-- " + cleaned;
+    if (trimmed.startsWith("ALTER PUBLICATION")) return "-- " + cleaned;
+    if (trimmed.includes("OWNER TO")) return "-- " + cleaned;
+    if (trimmed.startsWith("ALTER DEFAULT PRIVILEGES")) return "-- " + cleaned;
+    if (
+      trimmed.startsWith("GRANT") &&
+      (trimmed.includes("anon") ||
+        trimmed.includes("authenticated") ||
+        trimmed.includes("service_role"))
+    ) {
+      return "-- " + cleaned;
+    }
+    return cleaned;
+  });
+
+  const cleanedSql = cleanedLines.join("\n");
+
+  // Try applying all at once
+  try {
+    console.log("Applying database schema...");
+    await client.query(cleanedSql);
+    console.log("Schema applied successfully.");
+  } catch (err) {
+    console.log("Notice: Full schema execution failed due to:", err.message);
+    console.log(
+      "Executing statement-by-statement fallback (ignoring duplicate relation errors)...",
+    );
+
+    // Fallback: split by semicolon and run separately
+    const statements = cleanedSql.split(/;\s*$/m);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const stmt of statements) {
+      const cleanStmt = stmt.trim();
+      if (!cleanStmt) continue;
+
+      try {
+        await client.query(cleanStmt);
+        successCount++;
+      } catch (stmtErr) {
+        // Ignore duplicate relation or function errors
+        if (stmtErr.code === "42P07" || stmtErr.code === "42723") {
+          successCount++; // Count as success since it's already there
+        } else {
+          console.warn(`Warning executing statement: ${stmtErr.message}`);
+          failCount++;
+        }
+      }
+    }
+    console.log(
+      `Schema application fallback complete. Successes: ${successCount}, Ignored/Failed: ${failCount}`,
+    );
+  }
+
+  // Create document content table
+  try {
+    console.log("Creating document content table (rk_document_content)...");
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.rk_document_content (
+        document_id uuid PRIMARY KEY REFERENCES public.rk_documents(id) ON DELETE CASCADE,
+        content text NOT NULL
+      );
+    `);
+    console.log("Document content table ready.");
+  } catch (err) {
+    console.error("Failed to create document content table:", err.message);
+  }
+
+  // Migrate existing team roles from Member to Staff
+  try {
+    console.log("Migrating team roles from 'Member' to 'Staff'...");
+    await client.query("UPDATE public.rk_team SET role = 'Staff' WHERE role = 'Member';");
+    console.log("Team roles updated.");
+  } catch (err) {
+    console.error("Failed to migrate team roles:", err.message);
+  }
+
+  await client.end();
+  console.log("Migration script finished.");
+}
+
+run().catch((err) => {
+  console.error("Migration failed:", err);
+  process.exit(1);
+});

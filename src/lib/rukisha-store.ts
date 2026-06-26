@@ -106,7 +106,13 @@ function mapTask(t: DbTask, subtasks: DbSubTask[] = [], dependencies: string[] =
   };
 }
 function mapSubTask(s: DbSubTask) {
-  return { id: s.id, taskId: s.task_id, title: s.title, isCompleted: s.is_completed, assignee: (s as any).assignee ?? "" };
+  return {
+    id: s.id,
+    taskId: s.task_id,
+    title: s.title,
+    isCompleted: s.is_completed,
+    assignee: (s as any).assignee ?? "",
+  };
 }
 function mapStakeholder(s: DbStakeholder): Stakeholder {
   return { id: s.id, name: s.name, role: s.role };
@@ -213,11 +219,7 @@ async function loadAll(id?: string) {
         .eq("project_id", targetId)
         .eq("email", userEmail)
         .maybeSingle(),
-      supabase
-        .from("rk_team")
-        .select("id, email, name")
-        .eq("project_id", targetId)
-        .order("name"),
+      supabase.from("rk_team").select("id, email, name").eq("project_id", targetId).order("name"),
     ]);
 
     let subtasks: any[] = [];
@@ -228,7 +230,7 @@ async function loadAll(id?: string) {
         .select("*")
         .in(
           "task_id",
-          tasks.map((t) => t.id),
+          tasks.map((t: DbTask) => t.id),
         );
       subtasks = stData || [];
 
@@ -237,7 +239,7 @@ async function loadAll(id?: string) {
         .select("*")
         .in(
           "task_id",
-          tasks.map((t) => t.id),
+          tasks.map((t: DbTask) => t.id),
         );
       dependencies = depsData || [];
     }
@@ -258,18 +260,24 @@ async function loadAll(id?: string) {
       goLiveDate: project.go_live_date,
       stakeholders: (stakeholders || []).map(mapStakeholder),
       sections: (sections || []).map(mapSection),
-      tasks: (tasks || []).map((t) =>
+      tasks: (tasks || []).map((t: DbTask) =>
         mapTask(
           t,
           (subtasks || []).filter((st: any) => st.task_id === t.id),
-          (dependencies || []).filter((d: any) => d.task_id === t.id).map((d: any) => d.depends_on_task_id)
+          (dependencies || [])
+            .filter((d: any) => d.task_id === t.id)
+            .map((d: any) => d.depends_on_task_id),
         ),
       ),
-      teamMembers: (allTeamMembers || []).map((m: any) => ({ id: m.id, email: m.email, name: m.name || m.email })),
+      teamMembers: (allTeamMembers || []).map((m: any) => ({
+        id: m.id,
+        email: m.email,
+        name: m.name || m.email,
+      })),
       darkMode: localDark,
       userProjects: projectList,
       userEmail,
-      userRole: (teamMember as any)?.role || "Member",
+      userRole: (teamMember as any)?.role || "Staff",
       isSuperAdmin,
     };
 
@@ -615,7 +623,11 @@ export const actions = {
       await loadAll();
     }
   },
-  async updateSubTask(taskId: string, subTaskId: string, patch: { title?: string; assignee?: string }) {
+  async updateSubTask(
+    taskId: string,
+    subTaskId: string,
+    patch: { title?: string; assignee?: string },
+  ) {
     const task = state.tasks.find((t) => t.id === taskId);
     const current = task?.subTasks?.find((st) => st.id === subTaskId);
     if (!current) return;
@@ -634,13 +646,22 @@ export const actions = {
       ...s,
       tasks: s.tasks.map((t) =>
         t.id === taskId
-          ? { ...t, subTasks: (t.subTasks || []).map((st) => (st.id === subTaskId ? { ...st, ...patch } : st)) }
+          ? {
+              ...t,
+              subTasks: (t.subTasks || []).map((st) =>
+                st.id === subTaskId ? { ...st, ...patch } : st,
+              ),
+            }
           : t,
       ),
     }));
   },
   async addDependency(taskId: string, dependsOnTaskId: string) {
-    const { data, error } = await supabase.from("rk_task_dependencies").insert({ task_id: taskId, depends_on_task_id: dependsOnTaskId }).select().single();
+    const { data, error } = await supabase
+      .from("rk_task_dependencies")
+      .insert({ task_id: taskId, depends_on_task_id: dependsOnTaskId })
+      .select()
+      .single();
     if (error) {
       console.error("Failed to add dependency:", error);
       toast.error("Failed to add dependency: " + error.message);
@@ -649,13 +670,21 @@ export const actions = {
     if (data) {
       setState((s) => ({
         ...s,
-        tasks: s.tasks.map((t) => t.id === taskId ? { ...t, dependencies: [...(t.dependencies || []), dependsOnTaskId] } : t)
+        tasks: s.tasks.map((t) =>
+          t.id === taskId
+            ? { ...t, dependencies: [...(t.dependencies || []), dependsOnTaskId] }
+            : t,
+        ),
       }));
       await loadAll();
     }
   },
   async removeDependency(taskId: string, dependsOnTaskId: string) {
-    const { error } = await supabase.from("rk_task_dependencies").delete().eq("task_id", taskId).eq("depends_on_task_id", dependsOnTaskId);
+    const { error } = await supabase
+      .from("rk_task_dependencies")
+      .delete()
+      .eq("task_id", taskId)
+      .eq("depends_on_task_id", dependsOnTaskId);
     if (error) {
       console.error("Failed to remove dependency:", error);
       toast.error("Failed to remove dependency: " + error.message);
@@ -663,7 +692,11 @@ export const actions = {
     }
     setState((s) => ({
       ...s,
-      tasks: s.tasks.map((t) => t.id === taskId ? { ...t, dependencies: (t.dependencies || []).filter(d => d !== dependsOnTaskId) } : t)
+      tasks: s.tasks.map((t) =>
+        t.id === taskId
+          ? { ...t, dependencies: (t.dependencies || []).filter((d) => d !== dependsOnTaskId) }
+          : t,
+      ),
     }));
     await loadAll();
   },

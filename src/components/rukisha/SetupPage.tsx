@@ -102,15 +102,22 @@ export function SetupPage() {
   async function loadTeam(id: string) {
     const { data } = await supabase.from("rk_team").select("*").eq("project_id", id);
     if (data && data.length > 0) {
-      setTeam(data.map((r) => ({ id: r.id, email: r.email, name: r.name || "", role: r.role || "Member" })));
+      setTeam(
+        data.map((r: any) => ({
+          id: r.id,
+          email: r.email,
+          name: r.name || "",
+          role: r.role || "Staff",
+        })),
+      );
     } else {
-      setTeam([{ email: "", name: "", role: "Member" }]);
+      setTeam([{ email: "", name: "", role: "Staff" }]);
     }
     setLoading(false);
   }
 
   function addMember() {
-    setTeam((t) => [...t, { email: "", name: "", role: "Member" }]);
+    setTeam((t) => [...t, { email: "", name: "", role: "Staff" }]);
   }
 
   function updateMember(idx: number, field: "email" | "name" | "role", value: string) {
@@ -183,7 +190,7 @@ export function SetupPage() {
             project_id: pid!,
             email: m.email.trim().toLowerCase(),
             name: m.name.trim(),
-            role: m.role || 'Member',
+            role: m.role || "Member",
           })),
         ),
         supabase.from("rk_stakeholders").insert(
@@ -212,9 +219,12 @@ export function SetupPage() {
     setSaving(true);
     try {
       if (!projectId) throw new Error("No project ID found");
-      const { error: delErr } = await (supabase as any).from("rk_project").delete().eq("id", projectId);
+      const { error: delErr } = await (supabase as any)
+        .from("rk_project")
+        .delete()
+        .eq("id", projectId);
       if (delErr) throw delErr;
-      
+
       toast.success("Project deleted successfully");
       navigate({ to: "/" });
     } catch (err) {
@@ -237,7 +247,6 @@ export function SetupPage() {
 
   return (
     <div className="bg-background">
-
       <main className="mx-auto max-w-2xl px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold">
@@ -311,7 +320,7 @@ export function SetupPage() {
                     onChange={(e) => updateMember(idx, "role", e.target.value)}
                     className="w-32 rounded-md border border-border bg-background px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="Member">Member</option>
+                    <option value="Staff">Staff</option>
                     <option value="PM">PM</option>
                   </select>
                   <button
@@ -423,13 +432,16 @@ export function SetupPage() {
                 Permanent Mission Destruction
               </AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to PERMANENTLY delete this project and all its platform data? 
+                Are you sure you want to PERMANENTLY delete this project and all its platform data?
                 This action cannot be undone and will revoke access for all team members.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Abort Deletion</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
                 Confirm Destruction
               </AlertDialogAction>
             </AlertDialogFooter>

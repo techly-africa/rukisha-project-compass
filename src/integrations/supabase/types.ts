@@ -248,7 +248,7 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "rk_tasks";
             referencedColumns: ["id"];
-          }
+          },
         ];
       };
     };

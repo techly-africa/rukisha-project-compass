@@ -290,6 +290,7 @@ export function GanttChart() {
   const [frozenCount, setFrozenCount] = useState(2);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isPM = state.isSuperAdmin || state.userRole === "PM";
+  const isStaff = state.isSuperAdmin || state.userRole === "PM" || state.userRole === "Staff";
 
   const range = useMemo(() => {
     const dates = state.tasks.flatMap((t) => [t.planStart, dateAdd(t.planStart, t.planDuration)]);
@@ -336,7 +337,7 @@ export function GanttChart() {
   useEffect(() => {
     if (scrollRef.current && days.length > 0) {
       const today = todayISO();
-      const todayIdx = days.findIndex(d => d.iso === today);
+      const todayIdx = days.findIndex((d) => d.iso === today);
       if (todayIdx !== -1) {
         // Scroll so today is visible after the frozen columns
         const offset = todayIdx * DAY_W;
@@ -553,8 +554,8 @@ function SectionRow({
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Section?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will permanently delete the section <strong>"{section.name}"</strong> and
-                          all its associated tasks. This action cannot be undone.
+                          This will permanently delete the section <strong>"{section.name}"</strong>{" "}
+                          and all its associated tasks. This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -591,7 +592,9 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
   const totalCount = task.subTasks?.length || 0;
 
   const currentDependencies = task.dependencies || [];
-  const availableTasks = state.tasks.filter(t => t.id !== task.id && !currentDependencies.includes(t.id));
+  const availableTasks = state.tasks.filter(
+    (t) => t.id !== task.id && !currentDependencies.includes(t.id),
+  );
 
   return (
     <Dialog>
@@ -608,20 +611,30 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
 
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 bg-muted/20 p-4 rounded-lg border border-border">
           <div className="space-y-1">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground">Plan Start</span>
+            <span className="text-[10px] uppercase font-bold text-muted-foreground">
+              Plan Start
+            </span>
             <div className="text-sm font-medium">{task.planStart}</div>
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground">Plan Duration</span>
+            <span className="text-[10px] uppercase font-bold text-muted-foreground">
+              Plan Duration
+            </span>
             <div className="text-sm font-medium">{task.planDuration} days</div>
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground">Actual Start</span>
+            <span className="text-[10px] uppercase font-bold text-muted-foreground">
+              Actual Start
+            </span>
             <div className="text-sm font-medium">{task.actualStart || "Not started"}</div>
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground">Actual Duration</span>
-            <div className="text-sm font-medium">{task.actualDuration > 0 ? `${task.actualDuration} days` : "-"}</div>
+            <span className="text-[10px] uppercase font-bold text-muted-foreground">
+              Actual Duration
+            </span>
+            <div className="text-sm font-medium">
+              {task.actualDuration > 0 ? `${task.actualDuration} days` : "-"}
+            </div>
           </div>
         </div>
 
@@ -633,7 +646,10 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
 
             <div className="space-y-2 max-h-[250px] overflow-auto pr-2">
               {task.subTasks?.map((st) => (
-                <div key={st.id} className="flex items-center gap-2 group px-1 py-0.5 rounded hover:bg-muted/30">
+                <div
+                  key={st.id}
+                  className="flex items-center gap-2 group px-1 py-0.5 rounded hover:bg-muted/30"
+                >
                   <input
                     type="checkbox"
                     checked={st.isCompleted}
@@ -647,7 +663,9 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
                       onChange={(e) => setEditingSubTaskTitle(e.target.value)}
                       onBlur={() => {
                         if (editingSubTaskTitle.trim() && editingSubTaskTitle !== st.title) {
-                          actions.updateSubTask(task.id, st.id, { title: editingSubTaskTitle.trim() });
+                          actions.updateSubTask(task.id, st.id, {
+                            title: editingSubTaskTitle.trim(),
+                          });
                         }
                         setEditingSubTaskId(null);
                       }}
@@ -674,14 +692,18 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
                   {state.teamMembers.length > 0 && (
                     <select
                       value={st.assignee || ""}
-                      onChange={(e) => actions.updateSubTask(task.id, st.id, { assignee: e.target.value })}
+                      onChange={(e) =>
+                        actions.updateSubTask(task.id, st.id, { assignee: e.target.value })
+                      }
                       disabled={!isPM}
                       className="shrink-0 text-[10px] border border-border rounded px-1 py-0.5 bg-transparent max-w-[90px] text-muted-foreground focus:outline-none"
                       title="Assign to"
                     >
                       <option value="">Unassigned</option>
                       {state.teamMembers.map((m) => (
-                        <option key={m.id} value={m.name}>{m.name}</option>
+                        <option key={m.id} value={m.name}>
+                          {m.name}
+                        </option>
                       ))}
                     </select>
                   )}
@@ -738,10 +760,13 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
             </h4>
 
             <div className="space-y-2 max-h-[250px] overflow-auto pr-2">
-              {currentDependencies.map(depId => {
-                const depTask = state.tasks.find(t => t.id === depId);
+              {currentDependencies.map((depId) => {
+                const depTask = state.tasks.find((t) => t.id === depId);
                 return (
-                  <div key={depId} className="flex items-center justify-between group px-2 py-1.5 rounded bg-muted/40">
+                  <div
+                    key={depId}
+                    className="flex items-center justify-between group px-2 py-1.5 rounded bg-muted/40"
+                  >
                     <span className="text-sm truncate mr-2" title={depTask?.activity}>
                       {depTask?.activity || "Unknown Task"}
                     </span>
@@ -767,14 +792,18 @@ function TaskDetailModal({ task, children }: { task: Task; children: React.React
 
             {isPM && availableTasks.length > 0 && (
               <div className="flex gap-2 pt-2">
-                <select 
+                <select
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   value={selectedDependency}
                   onChange={(e) => setSelectedDependency(e.target.value)}
                 >
-                  <option value="" disabled>Select task...</option>
-                  {availableTasks.map(t => (
-                    <option key={t.id} value={t.id}>{t.activity}</option>
+                  <option value="" disabled>
+                    Select task...
+                  </option>
+                  {availableTasks.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.activity}
+                    </option>
                   ))}
                 </select>
                 <Button
@@ -813,6 +842,7 @@ function TaskRow({
 }) {
   const state = useProject();
   const isPM = state.isSuperAdmin || state.userRole === "PM";
+  const isStaff = state.isSuperAdmin || state.userRole === "PM" || state.userRole === "Staff";
   const today = todayISO();
 
   const planStartDay = daysBetween(rangeStart, task.planStart);
@@ -932,7 +962,7 @@ function TaskRow({
         if (i === 2) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-               <EditableCell
+              <EditableCell
                 type="date"
                 value={task.planStart}
                 onChange={(v) => actions.updateTask(task.id, { planStart: v })}
@@ -946,7 +976,7 @@ function TaskRow({
         if (i === 3) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-               <EditableCell
+              <EditableCell
                 type="date"
                 value={planEnd}
                 onChange={(v) => {
@@ -963,7 +993,7 @@ function TaskRow({
         if (i === 4) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-               <EditableCell
+              <EditableCell
                 type="number"
                 value={task.planDuration}
                 onChange={(v) =>
@@ -979,7 +1009,7 @@ function TaskRow({
         if (i === 5) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-               <EditableCell
+              <EditableCell
                 type="date"
                 value={task.actualStart ?? ""}
                 onChange={(v) => {
@@ -991,7 +1021,7 @@ function TaskRow({
                   }
                 }}
                 className="text-xs"
-                disabled={!isPM}
+                disabled={!isStaff}
               />
             </div>
           );
@@ -1000,7 +1030,7 @@ function TaskRow({
         if (i === 6) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-               <EditableCell
+              <EditableCell
                 type="date"
                 value={actualEnd}
                 onChange={(v) => {
@@ -1012,7 +1042,7 @@ function TaskRow({
                   });
                 }}
                 className="text-xs"
-                disabled={!isPM}
+                disabled={!isStaff}
               />
             </div>
           );
@@ -1021,14 +1051,14 @@ function TaskRow({
         if (i === 7) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-               <EditableCell
+              <EditableCell
                 type="number"
                 value={task.actualDuration}
                 onChange={(v) =>
                   actions.updateTask(task.id, { actualDuration: Math.max(0, parseInt(v) || 0) })
                 }
                 className="text-xs text-center"
-                disabled={!isPM}
+                disabled={!isStaff}
               />
             </div>
           );
@@ -1037,7 +1067,7 @@ function TaskRow({
         if (i === 8) {
           return (
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
-               <EditableCell
+              <EditableCell
                 type="number"
                 value={task.percentComplete}
                 onChange={(v) => {
@@ -1059,7 +1089,7 @@ function TaskRow({
                   actions.updateTask(task.id, updates);
                 }}
                 className="text-xs text-center font-semibold"
-                disabled={!isPM}
+                disabled={!isStaff}
               />
             </div>
           );
@@ -1082,63 +1112,63 @@ function TaskRow({
 
       {/* Timeline */}
       <div className="relative" style={{ width: days.length * DAY_W, height: 44 }}>
-          {/* day backgrounds */}
-          <div className="absolute inset-0 flex">
-            {days.map((d) => (
-              <div
-                key={d.iso}
-                className={`w-8 border-r border-border ${d.isWeekend ? "bg-muted/30" : ""} ${d.isToday ? "bg-[var(--rk-danger)]/8" : ""} ${d.isGoLive ? "bg-[var(--rk-gold)]/15" : ""}`}
-              />
-            ))}
-          </div>
-          {/* planned bar - thin reference line */}
-          <div
-            className="gantt-bar absolute top-2.5 h-1.5 rounded-full opacity-40"
-            style={{
-              left: planLeft,
-              width: planWidth,
-              background: "#94a3b8",
-              border: "1px solid rgba(0,0,0,0.05)",
-            }}
-            title={`Planned: ${task.planStart} → ${planEnd}`}
-          />
-
-          {/* actual background bar - main bar */}
-          <div
-            className="gantt-bar absolute top-5 h-5 rounded-[2px] overflow-hidden"
-            style={{
-              left: actualLeft,
-              width: actualWidth,
-              background: today > planEnd && !isComplete ? "#E6AC5C" : "#CBBED1",
-              backgroundImage:
-                "repeating-linear-gradient(-45deg,transparent,transparent 2px,rgba(255,255,255,0.3) 2px,rgba(255,255,255,0.3) 4px)",
-              opacity: 1,
-              border: "1px solid rgba(0,0,0,0.1)",
-            }}
-          >
-            {/* actual progress bar */}
-            {task.percentComplete > 0 && (
-              <div
-                className="h-full transition-all duration-500"
-                style={{
-                  width: `${task.percentComplete}%`,
-                  background: today > planEnd && !isComplete ? "#E6AC5C" : "var(--rk-navy)",
-                  opacity: 1,
-                }}
-              />
-            )}
-          </div>
-          {/* today line */}
-          {days.some((d) => d.isToday) && (
+        {/* day backgrounds */}
+        <div className="absolute inset-0 flex">
+          {days.map((d) => (
             <div
-              className="absolute top-0 bottom-0 w-px bg-[var(--rk-danger)]"
-              style={{ left: daysBetween(rangeStart, today) * DAY_W + DAY_W / 2 }}
+              key={d.iso}
+              className={`w-8 border-r border-border ${d.isWeekend ? "bg-muted/30" : ""} ${d.isToday ? "bg-[var(--rk-danger)]/8" : ""} ${d.isGoLive ? "bg-[var(--rk-gold)]/15" : ""}`}
+            />
+          ))}
+        </div>
+        {/* planned bar - thin reference line */}
+        <div
+          className="gantt-bar absolute top-2.5 h-1.5 rounded-full opacity-40"
+          style={{
+            left: planLeft,
+            width: planWidth,
+            background: "#94a3b8",
+            border: "1px solid rgba(0,0,0,0.05)",
+          }}
+          title={`Planned: ${task.planStart} → ${planEnd}`}
+        />
+
+        {/* actual background bar - main bar */}
+        <div
+          className="gantt-bar absolute top-5 h-5 rounded-[2px] overflow-hidden"
+          style={{
+            left: actualLeft,
+            width: actualWidth,
+            background: today > planEnd && !isComplete ? "#E6AC5C" : "#CBBED1",
+            backgroundImage:
+              "repeating-linear-gradient(-45deg,transparent,transparent 2px,rgba(255,255,255,0.3) 2px,rgba(255,255,255,0.3) 4px)",
+            opacity: 1,
+            border: "1px solid rgba(0,0,0,0.1)",
+          }}
+        >
+          {/* actual progress bar */}
+          {task.percentComplete > 0 && (
+            <div
+              className="h-full transition-all duration-500"
+              style={{
+                width: `${task.percentComplete}%`,
+                background: today > planEnd && !isComplete ? "#E6AC5C" : "var(--rk-navy)",
+                opacity: 1,
+              }}
             />
           )}
         </div>
+        {/* today line */}
+        {days.some((d) => d.isToday) && (
+          <div
+            className="absolute top-0 bottom-0 w-px bg-[var(--rk-danger)]"
+            style={{ left: daysBetween(rangeStart, today) * DAY_W + DAY_W / 2 }}
+          />
+        )}
       </div>
-    );
-  }
+    </div>
+  );
+}
 function AddSectionDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");

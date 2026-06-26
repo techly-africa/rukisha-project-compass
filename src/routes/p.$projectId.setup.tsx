@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/rukisha/AppShell";
 import { SetupPage } from "@/components/rukisha/SetupPage";
 

@@ -89,7 +89,9 @@ export function EmailGate({ children }: { children: ReactNode }) {
             <Compass className="h-7 w-7" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Avel Compass</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Premium project portfolio for Rukisha.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Premium project portfolio for Rukisha.
+          </p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-8 shadow-sm">

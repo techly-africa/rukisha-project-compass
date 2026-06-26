@@ -162,7 +162,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <span>Active Project</span>
               </div>
             )}
-            
+
             {/* Project Context Box */}
             {!isCollapsed && (
               <div className="mb-4 px-4 py-2 bg-muted/50 rounded-lg mx-1 border border-border/50">
