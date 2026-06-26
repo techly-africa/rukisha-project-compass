@@ -10,14 +10,22 @@ if (!dbUrl) {
 }
 
 async function run() {
-  console.log("Connecting to PostgreSQL...");
-  const client = new Client({ connectionString: dbUrl });
-
-  try {
-    await client.connect();
-  } catch (err) {
-    console.error("Failed to connect to database:", err.message);
-    process.exit(1);
+  let client;
+  let retries = 15;
+  while (retries > 0) {
+    try {
+      client = new Client({ connectionString: dbUrl });
+      await client.connect();
+      break;
+    } catch (err) {
+      retries--;
+      if (retries === 0) {
+        console.error("Failed to connect to database after 15 attempts:", err.message);
+        process.exit(1);
+      }
+      console.log(`Database is not ready yet. Retrying in 2 seconds... (${retries} attempts left)`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
   }
 
   console.log("Connected to database successfully.");
