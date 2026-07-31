@@ -19,9 +19,9 @@ services:
     depends_on:
       - db
     ports:
-      - "3000:3000"
+      - "3010:3010"
     environment:
-      PORT: 3000
+      PORT: 3010
       DATABASE_URL: postgresql://postgres:compass_password@db:5432/rk_compass
     command: sh -c "node migrate.cjs && node server.cjs"
 
