@@ -3,10 +3,16 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 
-const dbUrl = process.env.DATABASE_URL;
+let dbUrl = process.env.DATABASE_URL;
 if (!dbUrl) {
   console.error("Error: DATABASE_URL environment variable is not set in .env.");
   process.exit(1);
+}
+
+// Auto-correct local DB URL to Docker DB host in production containers
+if ((fs.existsSync("/.dockerenv") || process.platform !== "darwin") && (dbUrl.includes("localhost:5433") || dbUrl.includes("127.0.0.1:5433"))) {
+  console.log("Rewriting localhost:5433 database URL to internal Docker service db:5432");
+  dbUrl = dbUrl.replace("localhost:5433", "db:5432").replace("127.0.0.1:5433", "db:5432");
 }
 
 async function run() {

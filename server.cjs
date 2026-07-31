@@ -11,9 +11,18 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: "50mb" })); // support large file uploads as base64
 
+const fs = require("fs");
+let connectionString = process.env.DATABASE_URL;
+
+// Auto-correct local DB URL to Docker DB host in production containers
+if ((fs.existsSync("/.dockerenv") || process.platform !== "darwin") && connectionString && (connectionString.includes("localhost:5433") || connectionString.includes("127.0.0.1:5433"))) {
+  console.log("Rewriting localhost:5433 database URL to internal Docker service db:5432");
+  connectionString = connectionString.replace("localhost:5433", "db:5432").replace("127.0.0.1:5433", "db:5432");
+}
+
 // Initialize PostgreSQL pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: connectionString,
 });
 
 pool.on("error", (err) => {
