@@ -5,7 +5,7 @@ const path = require("path");
 require("dotenv").config();
 
 const app = express();
-const port = process.env.PORT || 3010;
+const port = process.env.PORT || 3000;
 
 // Enable CORS and JSON parsing
 app.use(cors());
