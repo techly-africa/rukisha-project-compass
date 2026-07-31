@@ -23,7 +23,7 @@ services:
     environment:
       PORT: 3010
       DATABASE_URL: postgresql://postgres:compass_password@db:5432/rk_compass
-    command: sh -c "node migrate.cjs && node server.cjs"
+    command: sh -c "node migrate.cjs & node server.cjs"
 
 volumes:
   compass-db-data:
