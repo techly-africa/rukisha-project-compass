@@ -20,28 +20,6 @@ if ((fs.existsSync("/.dockerenv") || process.platform !== "darwin") && connectio
   connectionString = connectionString.replace("localhost:5433", "db:5432").replace("127.0.0.1:5433", "db:5432");
 }
 
-// Run database migrations in the background asynchronously to ensure instant port binding
-// for health checks and prevent container boot blocking on Avel Cloud / Coolify.
-try {
-  const { fork } = require("child_process");
-  const migrationPath = path.join(__dirname, "migrate.cjs");
-  if (fs.existsSync(migrationPath)) {
-    console.log("Forking database migration script in background...");
-    const migrator = fork(migrationPath, [], {
-      env: { ...process.env, DATABASE_URL: connectionString }
-    });
-    migrator.on("exit", (code) => {
-      console.log(`Background migration process exited with code ${code}`);
-    });
-    migrator.on("error", (err) => {
-      console.error("Background migration process error:", err);
-    });
-  } else {
-    console.log("Migration script not found, skipping background migration.");
-  }
-} catch (err) {
-  console.error("Failed to start background migration fork:", err);
-}
 
 // Initialize PostgreSQL pool
 const pool = new Pool({
@@ -631,23 +609,7 @@ app.use((req, res, next) => {
 });
 
 
-// Start server on multiple fallback ports to resolve any deployment port mismatch
-// (Avel Cloud, Docker, app.yaml on 8080, local dev on 3010).
-// Handles EADDRINUSE/EACCES errors gracefully to prevent crashing.
-const listenPorts = new Set([3000, 3010, 8080]);
-if (process.env.PORT) {
-  const envPort = parseInt(process.env.PORT, 10);
-  if (!isNaN(envPort)) {
-    listenPorts.add(envPort);
-  }
-}
-
-for (const p of listenPorts) {
-  const server = app.listen(p, () => {
-    console.log(`Server listening on port ${p}`);
-  });
-  server.on("error", (err) => {
-    console.warn(`Port listener on port ${p} failed or was already in use:`, err.message);
-  });
-}
-
+// Start server
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server listening on port ${port}`);
+});
