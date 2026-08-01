@@ -11,4 +11,4 @@ nixPkgs = ["...", "nodejs_22"]
 cmds = ["npm run build"]
 
 [start]
-cmd = "node migrate.cjs && node server.cjs"
+cmd = "node server.cjs"
