@@ -352,18 +352,40 @@ app.post("/api/db", async (req, res) => {
 
     // INSERT
     if (action === "insert") {
-      const keys = Object.keys(data);
+      const isArray = Array.isArray(data);
+      const rows = isArray ? data : [data];
+
+      if (rows.length === 0) {
+        return res.json({ data: [], error: null });
+      }
+
+      const keys = Object.keys(rows[0]);
       if (keys.length === 0) {
         return res.status(400).json({ data: null, error: { message: "Insert data is empty" } });
       }
 
       const cols = keys.map(sanitizeIdentifier).join(", ");
-      const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
-      const sql = `INSERT INTO ${safeTable} (${cols}) VALUES (${placeholders}) RETURNING *`;
-      const values = keys.map((k) => data[k]);
+      
+      const values = [];
+      const placeholderRows = [];
+      let valIdx = 1;
+      
+      for (const row of rows) {
+        const rowPlaceholders = [];
+        for (const k of keys) {
+          values.push(row[k]);
+          rowPlaceholders.push(`$${valIdx++}`);
+        }
+        placeholderRows.push(`(${rowPlaceholders.join(", ")})`);
+      }
 
+      const sql = `INSERT INTO ${safeTable} (${cols}) VALUES ${placeholderRows.join(", ")} RETURNING *`;
       const dbRes = await pool.query(sql, values);
-      const result = single ? dbRes.rows[0] : dbRes.rows;
+      
+      let result = dbRes.rows;
+      if (single && !isArray) {
+        result = dbRes.rows.length > 0 ? dbRes.rows[0] : null;
+      }
       return res.json({ data: result, error: null });
     }
 
