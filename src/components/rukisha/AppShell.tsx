@@ -99,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background text-foreground transition-all duration-300">
       <aside
-        className={`no-print relative hidden shrink-0 flex-col border-r border-border bg-card transition-all duration-300 md:flex ${
+        className={`no-print sticky top-0 h-screen hidden shrink-0 flex-col border-r border-border bg-card transition-all duration-300 md:flex ${
           isCollapsed ? "w-[68px]" : "w-60"
         }`}
       >
