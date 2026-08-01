@@ -595,9 +595,18 @@ app.post("/api/storage/remove", async (req, res) => {
 // 5. Serve static client files in production
 app.use(express.static(path.join(__dirname, "dist")));
 
-app.get("*", (req, res) => {
+// SPA catch-all — must come after all API routes and static middleware.
+// Serves index.html for every GET request that doesn't match an API route
+// or a static asset, so TanStack Router can handle client-side navigation.
+// Using app.use() instead of app.get("*") for Express 4/5 compatibility
+// (bare "*" doesn't match paths containing "/" in Express 5).
+app.use((req, res, next) => {
+  if (req.method !== "GET") return next();
+  // Don't intercept API or storage routes
+  if (req.path.startsWith("/api/") || req.path.startsWith("/storage/")) return next();
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
+
 
 // Start server
 app.listen(port, () => {
