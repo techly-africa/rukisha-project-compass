@@ -76,6 +76,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           params: { projectId: state.id },
         },
         {
+          to: "/p/$projectId/kanban",
+          label: "Kanban Board",
+          d: "M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18",
+          params: { projectId: state.id },
+        },
+        {
+          to: "/p/$projectId/calendar",
+          label: "Calendar",
+          d: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z",
+          params: { projectId: state.id },
+        },
+        {
           to: "/p/$projectId/dashboard",
           label: "Dashboard",
           d: "M3 12h4l3-9 4 18 3-9h4",
@@ -276,6 +288,20 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="md:hidden text-xs px-2 py-1 rounded border border-border"
             >
               Gantt
+            </Link>
+            <Link
+              to="/p/$projectId/kanban"
+              params={{ projectId: state.id! }}
+              className="md:hidden text-xs px-2 py-1 rounded border border-border"
+            >
+              Kanban
+            </Link>
+            <Link
+              to="/p/$projectId/calendar"
+              params={{ projectId: state.id! }}
+              className="md:hidden text-xs px-2 py-1 rounded border border-border"
+            >
+              Calendar
             </Link>
             <Link
               to="/p/$projectId/dashboard"

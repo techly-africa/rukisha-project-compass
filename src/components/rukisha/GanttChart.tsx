@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 const DAY_W = 32;
+const ROW_H = 44; // must match h-11 (2.75rem = 44px) in TaskRow
 
 const COLUMN_CONFIG = [
   { label: "Activity", width: 280 },
@@ -380,7 +381,7 @@ export function GanttChart() {
 
         {/* Body */}
         {grouped.map(({ section, tasks }) => (
-          <div key={section.id}>
+          <div key={section.id} className="relative">
             <SectionRow section={section} daysCount={days.length} frozenCount={frozenCount} />
             {tasks.map((task, idx) => (
               <TaskRow
@@ -388,10 +389,18 @@ export function GanttChart() {
                 task={task}
                 rangeStart={range.start}
                 days={days}
+                rowIndex={idx}
                 isLast={idx === tasks.length - 1}
                 frozenCount={frozenCount}
               />
             ))}
+            {/* Dependency arrows SVG overlay */}
+            <DependencyOverlay
+              tasks={tasks}
+              allTasks={state.tasks}
+              rangeStart={range.start}
+              daysCount={days.length}
+            />
             {isPM && (
               <div
                 className={`${frozenCount > 0 ? "sticky left-0 z-10" : "relative"} flex bg-background`}
@@ -503,6 +512,111 @@ function HeaderSticky({
   );
 }
 
+/**
+ * Renders finish-to-start dependency arrows as an SVG overlay over the timeline area.
+ * Positioned absolutely over the section's task rows (left = STICKY_W).
+ */
+function DependencyOverlay({
+  tasks,
+  allTasks,
+  rangeStart,
+  daysCount,
+}: {
+  tasks: Task[];
+  allTasks: Task[];
+  rangeStart: string;
+  daysCount: number;
+}) {
+  if (!tasks.some((t) => (t.dependencies?.length ?? 0) > 0)) return null;
+
+  const svgW = daysCount * DAY_W;
+  const svgH = tasks.length * ROW_H;
+  // +1px to start at vertical center of the first SectionRow (ROW_H offset)
+  const sectionRowH = 36; // SectionRow uses py-2 ~ 36px
+
+  const arrows: React.ReactNode[] = [];
+
+  tasks.forEach((task, toIdx) => {
+    const deps = task.dependencies ?? [];
+    deps.forEach((depId) => {
+      const fromTask = tasks.find((t) => t.id === depId) ?? allTasks.find((t) => t.id === depId);
+      if (!fromTask) return;
+      const fromIdx = tasks.indexOf(fromTask);
+      if (fromIdx < 0) return; // cross-section dep — skip for now
+
+      // X: right edge of fromTask's plan bar → left edge of toTask's plan bar
+      const fromPlanEnd = dateAdd(fromTask.planStart, fromTask.planDuration);
+      const fromX = Math.max(0, daysBetween(rangeStart, fromPlanEnd)) * DAY_W;
+      const toX = Math.max(0, daysBetween(rangeStart, task.planStart)) * DAY_W;
+
+      // Y: vertical center of each row (within the section body, not counting the SectionRow header)
+      const fromY = sectionRowH + fromIdx * ROW_H + ROW_H / 2;
+      const toY = sectionRowH + toIdx * ROW_H + ROW_H / 2;
+
+      // Detect schedule violation: dep ends after task starts
+      const isViolation = fromPlanEnd > task.planStart;
+      const color = isViolation ? "var(--rk-danger)" : "#94a3b8";
+
+      // Elbow path: right → bend down → left → arrowhead
+      const midX = fromX + Math.abs(toX - fromX) * 0.5;
+      const arrowSize = 5;
+      const key = `${fromTask.id}->${task.id}`;
+
+      if (fromY === toY) {
+        // Same row (shouldn't normally happen, but safety)
+        arrows.push(
+          <g key={key}>
+            <path
+              d={`M ${fromX} ${fromY} L ${toX} ${toY}`}
+              stroke={color}
+              strokeWidth={1.5}
+              fill="none"
+              strokeDasharray={isViolation ? "4 2" : undefined}
+              opacity={0.7}
+            />
+            <polygon
+              points={`${toX},${toY} ${toX - arrowSize},${toY - arrowSize / 2} ${toX - arrowSize},${toY + arrowSize / 2}`}
+              fill={color}
+              opacity={0.7}
+            />
+          </g>,
+        );
+      } else {
+        // Standard F-to-S elbow
+        arrows.push(
+          <g key={key}>
+            <path
+              d={`M ${fromX} ${fromY} H ${midX} V ${toY} H ${toX}`}
+              stroke={color}
+              strokeWidth={1.5}
+              fill="none"
+              strokeDasharray={isViolation ? "4 2" : undefined}
+              opacity={0.7}
+            />
+            <polygon
+              points={`${toX},${toY} ${toX - arrowSize},${toY - arrowSize / 2} ${toX - arrowSize},${toY + arrowSize / 2}`}
+              fill={color}
+              opacity={0.7}
+            />
+          </g>,
+        );
+      }
+    });
+  });
+
+  if (arrows.length === 0) return null;
+
+  return (
+    <svg
+      className="pointer-events-none absolute top-0 z-10"
+      style={{ left: STICKY_W, width: svgW, height: svgH + sectionRowH }}
+      overflow="visible"
+    >
+      {arrows}
+    </svg>
+  );
+}
+
 function SectionRow({
   section,
   daysCount,
@@ -580,7 +694,7 @@ function SectionRow({
   );
 }
 
-function TaskDetailModal({ task, children }: { task: Task; children: React.ReactNode }) {
+export function TaskDetailModal({ task, children }: { task: Task; children: React.ReactNode }) {
   const state = useProject();
   const isPM = state.isSuperAdmin || state.userRole === "PM";
   const [newSubTask, setNewSubTask] = useState("");
@@ -832,12 +946,14 @@ function TaskRow({
   rangeStart,
   days,
   isLast,
+  rowIndex: _rowIndex,
   frozenCount,
 }: {
   task: Task;
   rangeStart: string;
   days: { iso: string; isWeekend: boolean; isToday: boolean; isGoLive: boolean }[];
   isLast: boolean;
+  rowIndex: number;
   frozenCount: number;
 }) {
   const state = useProject();
@@ -846,17 +962,18 @@ function TaskRow({
   const today = todayISO();
 
   const planStartDay = daysBetween(rangeStart, task.planStart);
-  const planLeft = planStartDay * DAY_W;
-  const planWidth = task.planDuration * DAY_W;
+  // Guard against negative offsets (task starts before range window, e.g. date timezone shift)
+  const planLeft = Math.max(0, planStartDay * DAY_W);
+  const planWidth = Math.max(DAY_W, task.planDuration * DAY_W);
 
   const actualLeft = task.actualStart
-    ? daysBetween(rangeStart, task.actualStart) * DAY_W
+    ? Math.max(0, daysBetween(rangeStart, task.actualStart) * DAY_W)
     : planLeft;
 
   // Calculate effective actual duration:
   // Use actualDuration if set (from Actual Finish in UI), otherwise fallback to planDuration.
   const effectiveDur = task.actualDuration || task.planDuration;
-  const actualWidth = effectiveDur * DAY_W;
+  const actualWidth = Math.max(DAY_W, effectiveDur * DAY_W);
 
   // Determine actual bar color
   const planEnd = dateAdd(task.planStart, task.planDuration);

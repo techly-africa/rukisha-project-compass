@@ -87,6 +87,17 @@ type DbStakeholder = { id: string; name: string; role: string };
 
 type DbSubTask = { id: string; task_id: string; title: string; is_completed: boolean };
 
+/**
+ * Normalize any date string coming from the DB to a plain YYYY-MM-DD string.
+ * Postgres DATE columns are returned as full UTC timestamps like "2026-08-03T00:00:00.000Z".
+ * Slicing to 10 chars strips the time component and avoids timezone-shift bugs
+ * that would misalign Gantt bars in non-UTC locales.
+ */
+function normalizeDate(raw: string | null | undefined): string {
+  if (!raw) return "";
+  return String(raw).slice(0, 10);
+}
+
 function mapSection(s: DbSection): Section {
   return { id: s.id, name: s.name, color: s.color };
 }
@@ -96,9 +107,9 @@ function mapTask(t: DbTask, subtasks: DbSubTask[] = [], dependencies: string[] =
     sectionId: t.section_id,
     activity: t.activity,
     owner: t.owner,
-    planStart: t.plan_start,
+    planStart: normalizeDate(t.plan_start),
     planDuration: t.plan_duration,
-    actualStart: t.actual_start,
+    actualStart: t.actual_start ? normalizeDate(t.actual_start) : null,
     actualDuration: t.actual_duration,
     percentComplete: t.percent_complete,
     subTasks: subtasks.map(mapSubTask),

@@ -14,7 +14,9 @@ import { Route as PProjectIdRouteImport } from './routes/p.$projectId'
 import { Route as PProjectIdIndexRouteImport } from './routes/p.$projectId.index'
 import { Route as PProjectIdVaultRouteImport } from './routes/p.$projectId.vault'
 import { Route as PProjectIdSetupRouteImport } from './routes/p.$projectId.setup'
+import { Route as PProjectIdKanbanRouteImport } from './routes/p.$projectId.kanban'
 import { Route as PProjectIdDashboardRouteImport } from './routes/p.$projectId.dashboard'
+import { Route as PProjectIdCalendarRouteImport } from './routes/p.$projectId.calendar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,23 +43,37 @@ const PProjectIdSetupRoute = PProjectIdSetupRouteImport.update({
   path: '/setup',
   getParentRoute: () => PProjectIdRoute,
 } as any)
+const PProjectIdKanbanRoute = PProjectIdKanbanRouteImport.update({
+  id: '/kanban',
+  path: '/kanban',
+  getParentRoute: () => PProjectIdRoute,
+} as any)
 const PProjectIdDashboardRoute = PProjectIdDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => PProjectIdRoute,
+} as any)
+const PProjectIdCalendarRoute = PProjectIdCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => PProjectIdRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/p/$projectId': typeof PProjectIdRouteWithChildren
+  '/p/$projectId/calendar': typeof PProjectIdCalendarRoute
   '/p/$projectId/dashboard': typeof PProjectIdDashboardRoute
+  '/p/$projectId/kanban': typeof PProjectIdKanbanRoute
   '/p/$projectId/setup': typeof PProjectIdSetupRoute
   '/p/$projectId/vault': typeof PProjectIdVaultRoute
   '/p/$projectId/': typeof PProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/p/$projectId/calendar': typeof PProjectIdCalendarRoute
   '/p/$projectId/dashboard': typeof PProjectIdDashboardRoute
+  '/p/$projectId/kanban': typeof PProjectIdKanbanRoute
   '/p/$projectId/setup': typeof PProjectIdSetupRoute
   '/p/$projectId/vault': typeof PProjectIdVaultRoute
   '/p/$projectId': typeof PProjectIdIndexRoute
@@ -66,7 +82,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/p/$projectId': typeof PProjectIdRouteWithChildren
+  '/p/$projectId/calendar': typeof PProjectIdCalendarRoute
   '/p/$projectId/dashboard': typeof PProjectIdDashboardRoute
+  '/p/$projectId/kanban': typeof PProjectIdKanbanRoute
   '/p/$projectId/setup': typeof PProjectIdSetupRoute
   '/p/$projectId/vault': typeof PProjectIdVaultRoute
   '/p/$projectId/': typeof PProjectIdIndexRoute
@@ -76,14 +94,18 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/p/$projectId'
+    | '/p/$projectId/calendar'
     | '/p/$projectId/dashboard'
+    | '/p/$projectId/kanban'
     | '/p/$projectId/setup'
     | '/p/$projectId/vault'
     | '/p/$projectId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/p/$projectId/calendar'
     | '/p/$projectId/dashboard'
+    | '/p/$projectId/kanban'
     | '/p/$projectId/setup'
     | '/p/$projectId/vault'
     | '/p/$projectId'
@@ -91,7 +113,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/p/$projectId'
+    | '/p/$projectId/calendar'
     | '/p/$projectId/dashboard'
+    | '/p/$projectId/kanban'
     | '/p/$projectId/setup'
     | '/p/$projectId/vault'
     | '/p/$projectId/'
@@ -139,6 +163,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PProjectIdSetupRouteImport
       parentRoute: typeof PProjectIdRoute
     }
+    '/p/$projectId/kanban': {
+      id: '/p/$projectId/kanban'
+      path: '/kanban'
+      fullPath: '/p/$projectId/kanban'
+      preLoaderRoute: typeof PProjectIdKanbanRouteImport
+      parentRoute: typeof PProjectIdRoute
+    }
     '/p/$projectId/dashboard': {
       id: '/p/$projectId/dashboard'
       path: '/dashboard'
@@ -146,18 +177,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PProjectIdDashboardRouteImport
       parentRoute: typeof PProjectIdRoute
     }
+    '/p/$projectId/calendar': {
+      id: '/p/$projectId/calendar'
+      path: '/calendar'
+      fullPath: '/p/$projectId/calendar'
+      preLoaderRoute: typeof PProjectIdCalendarRouteImport
+      parentRoute: typeof PProjectIdRoute
+    }
   }
 }
 
 interface PProjectIdRouteChildren {
+  PProjectIdCalendarRoute: typeof PProjectIdCalendarRoute
   PProjectIdDashboardRoute: typeof PProjectIdDashboardRoute
+  PProjectIdKanbanRoute: typeof PProjectIdKanbanRoute
   PProjectIdSetupRoute: typeof PProjectIdSetupRoute
   PProjectIdVaultRoute: typeof PProjectIdVaultRoute
   PProjectIdIndexRoute: typeof PProjectIdIndexRoute
 }
 
 const PProjectIdRouteChildren: PProjectIdRouteChildren = {
+  PProjectIdCalendarRoute: PProjectIdCalendarRoute,
   PProjectIdDashboardRoute: PProjectIdDashboardRoute,
+  PProjectIdKanbanRoute: PProjectIdKanbanRoute,
   PProjectIdSetupRoute: PProjectIdSetupRoute,
   PProjectIdVaultRoute: PProjectIdVaultRoute,
   PProjectIdIndexRoute: PProjectIdIndexRoute,
