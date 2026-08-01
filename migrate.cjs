@@ -134,6 +134,19 @@ async function run() {
     console.error("Failed to migrate team roles:", err.message);
   }
 
+  // Seed super admins
+  try {
+    console.log("Seeding super admins...");
+    await client.query(`
+      INSERT INTO public.rk_superadmins (email)
+      VALUES ('admin@rukisha.co.rw'), ('cbienaime@rukisha.co.rw')
+      ON CONFLICT (email) DO NOTHING;
+    `);
+    console.log("Super admins seeded successfully.");
+  } catch (err) {
+    console.error("Failed to seed super admins:", err.message);
+  }
+
   await client.end();
   console.log("Migration script finished.");
 }
