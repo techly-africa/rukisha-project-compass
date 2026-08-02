@@ -1,0 +1,1421 @@
+{
+  "rk_superadmins": [
+    {
+      "email": "cbienaime@rukisha.co.rw"
+    },
+    {
+      "email": "admin@rukisha.co.rw"
+    }
+  ],
+  "rk_project": [
+    {
+      "id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "name": "RUKISHA MERCHANT LENDING",
+      "go_live_date": "2026-07-30T22:00:00.000Z",
+      "updated_at": "2026-04-27T11:38:48.112Z",
+      "is_archived": false
+    },
+    {
+      "id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "name": "Internal Tracker",
+      "go_live_date": "2026-06-11T22:00:00.000Z",
+      "updated_at": "2026-06-05T12:33:13.111Z",
+      "is_archived": false
+    }
+  ],
+  "rk_sections": [
+    {
+      "id": "b7413622-7fcc-4092-9f7f-62577ae20985",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "name": "LEGAL & COMPLIANCE",
+      "color": "#2E75B6",
+      "position": 0,
+      "created_at": "2026-04-27T11:38:59.464Z"
+    },
+    {
+      "id": "224291b3-04fa-4e2d-a1bc-d55f484c544d",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "name": "BUSINESS & GTM",
+      "color": "#2E75B6",
+      "position": 1,
+      "created_at": "2026-04-27T11:39:04.752Z"
+    },
+    {
+      "id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "name": "TECH & PRODUCTS",
+      "color": "#2E75B6",
+      "position": 2,
+      "created_at": "2026-04-27T11:39:11.396Z"
+    },
+    {
+      "id": "1d6ac9d5-bfc4-48db-a781-6fb5d451e033",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "name": "Admin",
+      "color": "#2E75B6",
+      "position": 0,
+      "created_at": "2026-05-19T09:52:25.817Z"
+    },
+    {
+      "id": "64bd3e35-fb78-41da-b267-fe621f7f827a",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "name": "Product Launch",
+      "color": "#2E75B6",
+      "position": 1,
+      "created_at": "2026-05-19T10:00:44.286Z"
+    },
+    {
+      "id": "0f60756d-b55c-48f5-bd7c-e87f169b9232",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "name": "Third Party Stakeholders",
+      "color": "#2E75B6",
+      "position": 2,
+      "created_at": "2026-05-19T10:25:09.311Z"
+    },
+    {
+      "id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "name": "Human Resources",
+      "color": "#2E75B6",
+      "position": 3,
+      "created_at": "2026-05-19T10:37:30.443Z"
+    },
+    {
+      "id": "e4a443a1-a22c-40d5-9415-14ec3519cf74",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "name": "GTM",
+      "color": "#2E75B6",
+      "position": 4,
+      "created_at": "2026-05-19T10:47:03.082Z"
+    }
+  ],
+  "rk_tasks": [
+    {
+      "id": "9697e3a6-ca07-494f-bcf6-b5bd3cf617da",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "b7413622-7fcc-4092-9f7f-62577ae20985",
+      "activity": "NDA",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-03-31T22:00:00.000Z",
+      "plan_duration": 1,
+      "actual_start": "2026-03-31T22:00:00.000Z",
+      "actual_duration": 0,
+      "percent_complete": 100,
+      "position": 0,
+      "created_at": "2026-04-27T11:39:13.753Z"
+    },
+    {
+      "id": "463bf7dd-a8ae-42f4-bfea-bfc2a75fba9b",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "Connectivity (Site2site & App) & VPN",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-04-30T22:00:00.000Z",
+      "plan_duration": 14,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 9,
+      "created_at": "2026-04-29T12:20:59.243Z"
+    },
+    {
+      "id": "b59cf32e-7ba5-4edf-8247-8fc3c98f634c",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "0f60756d-b55c-48f5-bd7c-e87f169b9232",
+      "activity": "Panamax/Platform",
+      "owner": "Copain Fabrice",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 10,
+      "created_at": "2026-05-19T10:25:13.242Z"
+    },
+    {
+      "id": "9df2870b-7f73-4338-b351-094eb5bb11b3",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "Test Fund transfer",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-07-13T22:00:00.000Z",
+      "plan_duration": 1,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 15,
+      "created_at": "2026-04-29T12:25:33.441Z"
+    },
+    {
+      "id": "e7932628-a3fd-43ff-8f91-cf39575d016c",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "b7413622-7fcc-4092-9f7f-62577ae20985",
+      "activity": "Terms & Conditions",
+      "owner": "MMRL",
+      "plan_start": "2026-04-26T22:00:00.000Z",
+      "plan_duration": 31,
+      "actual_start": "2026-04-27T22:00:00.000Z",
+      "actual_duration": 27,
+      "percent_complete": 0,
+      "position": 1,
+      "created_at": "2026-04-27T11:40:26.386Z"
+    },
+    {
+      "id": "bf53184c-5fee-4584-a41d-0abe376b2179",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "224291b3-04fa-4e2d-a1bc-d55f484c544d",
+      "activity": "Customer Communication (SMS Journey)",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-04-28T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 19,
+      "created_at": "2026-04-29T12:31:45.354Z"
+    },
+    {
+      "id": "53ad028b-72dd-4272-902c-9fa7197f0c41",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "b7413622-7fcc-4092-9f7f-62577ae20985",
+      "activity": "BNR Non-objection to work with MOMO",
+      "owner": "RUKISHA",
+      "plan_start": "2026-05-14T22:00:00.000Z",
+      "plan_duration": 15,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 3,
+      "created_at": "2026-04-27T15:31:21.552Z"
+    },
+    {
+      "id": "e370f6d0-3c94-436b-9a7b-f7d7cee62888",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "224291b3-04fa-4e2d-a1bc-d55f484c544d",
+      "activity": "Financial Operations and Account Management",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-04-28T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 20,
+      "created_at": "2026-04-29T12:31:59.293Z"
+    },
+    {
+      "id": "41fded22-a1c8-4175-a327-5308371e3460",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "0f60756d-b55c-48f5-bd7c-e87f169b9232",
+      "activity": "Trans-union/CRB",
+      "owner": "Copain Fabrice",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 11,
+      "created_at": "2026-05-19T10:30:00.184Z"
+    },
+    {
+      "id": "3c5f2255-6f49-4b1c-8d2a-514785f5b462",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "224291b3-04fa-4e2d-a1bc-d55f484c544d",
+      "activity": "Call Center and Customer Service Readiness",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-04-28T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 21,
+      "created_at": "2026-04-29T12:32:08.690Z"
+    },
+    {
+      "id": "84f77183-a154-4604-b849-c9450aa69b71",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "LLD/HLD",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-05-04T22:00:00.000Z",
+      "plan_duration": 41,
+      "actual_start": "2026-04-14T22:00:00.000Z",
+      "actual_duration": 21,
+      "percent_complete": 70,
+      "position": 8,
+      "created_at": "2026-04-27T15:56:38.838Z"
+    },
+    {
+      "id": "e45fcc87-c2ec-4658-80e9-da5d07fdb269",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "224291b3-04fa-4e2d-a1bc-d55f484c544d",
+      "activity": "GL Mapping (mirror accounts on MOMO OVAs (Online Vendor Accounts)",
+      "owner": "RUKISHA",
+      "plan_start": "2026-04-28T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 22,
+      "created_at": "2026-04-29T12:32:25.732Z"
+    },
+    {
+      "id": "01f3d9cf-b725-472a-95c0-3f354bc85f63",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "b7413622-7fcc-4092-9f7f-62577ae20985",
+      "activity": "Data Protection Certificate ",
+      "owner": "RUKISHA",
+      "plan_start": "2026-05-14T22:00:00.000Z",
+      "plan_duration": 46,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 5,
+      "created_at": "2026-04-27T15:43:09.944Z"
+    },
+    {
+      "id": "bb532bd0-29c0-4ce1-8671-71a3717416fa",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "224291b3-04fa-4e2d-a1bc-d55f484c544d",
+      "activity": "Bureau Reporting & Commercials",
+      "owner": "RUKISHA",
+      "plan_start": "2026-04-28T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 23,
+      "created_at": "2026-04-29T12:32:38.121Z"
+    },
+    {
+      "id": "27ca17fb-241f-48c7-8157-99358916482b",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "Data and Scoring Updates",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-04-30T22:00:00.000Z",
+      "plan_duration": 14,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 10,
+      "created_at": "2026-04-29T12:21:48.264Z"
+    },
+    {
+      "id": "02e715d4-72c4-42bf-a1fa-c9f79adf76fc",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "b7413622-7fcc-4092-9f7f-62577ae20985",
+      "activity": "Agreement / Contract ",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-04-12T22:00:00.000Z",
+      "plan_duration": 17,
+      "actual_start": "2026-04-19T22:00:00.000Z",
+      "actual_duration": 0,
+      "percent_complete": 50,
+      "position": 5,
+      "created_at": "2026-04-27T15:44:10.485Z"
+    },
+    {
+      "id": "705c036e-ae33-4fc2-950d-2e4876747e55",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "Staff Pilot (UAT 2) ",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-07-19T22:00:00.000Z",
+      "plan_duration": 2,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 16,
+      "created_at": "2026-04-29T12:26:15.057Z"
+    },
+    {
+      "id": "11609107-5501-4715-a379-7bff843428d8",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "Development ",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-04-30T22:00:00.000Z",
+      "plan_duration": 30,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 11,
+      "created_at": "2026-04-29T12:23:31.990Z"
+    },
+    {
+      "id": "1f2d6682-344c-40bf-b368-3f3b555556c1",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "64bd3e35-fb78-41da-b267-fe621f7f827a",
+      "activity": "BNR License",
+      "owner": "Robert",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 5,
+      "created_at": "2026-05-19T10:00:47.453Z"
+    },
+    {
+      "id": "495b44ca-aa54-4693-abb4-32e6d3c7624a",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "224291b3-04fa-4e2d-a1bc-d55f484c544d",
+      "activity": "BNR Regulatory Reporting & Reporting developments",
+      "owner": "RUKISHA",
+      "plan_start": "2026-04-28T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 25,
+      "created_at": "2026-04-29T12:33:19.786Z"
+    },
+    {
+      "id": "b57aea29-8160-4665-9c1b-7f5420641a39",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "SIT",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-05-31T22:00:00.000Z",
+      "plan_duration": 14,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 12,
+      "created_at": "2026-04-29T12:23:58.110Z"
+    },
+    {
+      "id": "bf5ff274-e2d2-47f4-944d-40aa08b12cd5",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "Commercial Go-live ",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-07-21T22:00:00.000Z",
+      "plan_duration": 1,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 17,
+      "created_at": "2026-04-29T12:28:31.180Z"
+    },
+    {
+      "id": "d81b386e-e3e6-48f8-938d-394e03ef6558",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "64bd3e35-fb78-41da-b267-fe621f7f827a",
+      "activity": "MTN Contract",
+      "owner": "Robert",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 6,
+      "created_at": "2026-05-19T10:02:27.738Z"
+    },
+    {
+      "id": "3988dd21-11a8-451f-a812-14a0d0a5bfe6",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "Solutioning",
+      "owner": "MMRL",
+      "plan_start": "2026-03-31T22:00:00.000Z",
+      "plan_duration": 44,
+      "actual_start": "2026-03-31T22:00:00.000Z",
+      "actual_duration": 14,
+      "percent_complete": 100,
+      "position": 7,
+      "created_at": "2026-04-27T15:55:13.983Z"
+    },
+    {
+      "id": "60be0373-22de-4729-83d5-dc007ee44981",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "BRS",
+      "owner": "RUKISHA",
+      "plan_start": "2026-03-31T22:00:00.000Z",
+      "plan_duration": 29,
+      "actual_start": "2026-04-01T22:00:00.000Z",
+      "actual_duration": 20,
+      "percent_complete": 100,
+      "position": 6,
+      "created_at": "2026-04-27T15:52:59.586Z"
+    },
+    {
+      "id": "bdc88375-e64b-47aa-a9d9-30ddf988262c",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "UAT",
+      "owner": "RUKISHA, MMRL",
+      "plan_start": "2026-06-15T22:00:00.000Z",
+      "plan_duration": 17,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 13,
+      "created_at": "2026-04-29T12:24:28.976Z"
+    },
+    {
+      "id": "f3827cd6-dee8-485b-af95-92d7f5ed2fc3",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "224291b3-04fa-4e2d-a1bc-d55f484c544d",
+      "activity": "Billing and Reconciliation Processes",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-04-28T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 24,
+      "created_at": "2026-04-29T12:33:08.237Z"
+    },
+    {
+      "id": "94a17353-e354-4159-8ad7-8494a1005c68",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "224291b3-04fa-4e2d-a1bc-d55f484c544d",
+      "activity": "Product Name and Creatives ",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-04-28T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 18,
+      "created_at": "2026-04-29T12:31:34.165Z"
+    },
+    {
+      "id": "ed88ca97-ce80-4bb4-8460-02da030d3a3b",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "b7413622-7fcc-4092-9f7f-62577ae20985",
+      "activity": "Due Diligence ",
+      "owner": "MMRL, RUKISHA",
+      "plan_start": "2026-04-26T22:00:00.000Z",
+      "plan_duration": 30,
+      "actual_start": "2026-05-10T22:00:00.000Z",
+      "actual_duration": 19,
+      "percent_complete": 60,
+      "position": 4,
+      "created_at": "2026-04-27T15:42:34.748Z"
+    },
+    {
+      "id": "1c32d4a0-149b-42db-b1ea-6cb14fa137c2",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "37ae0354-e6cd-4cd9-8258-91bbe5b2ff93",
+      "activity": "CAB Approval ",
+      "owner": "MMRL",
+      "plan_start": "2026-07-05T22:00:00.000Z",
+      "plan_duration": 6,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 14,
+      "created_at": "2026-04-29T12:24:58.137Z"
+    },
+    {
+      "id": "2375bc41-b25c-4d17-b6ed-9a4685ff656c",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "64bd3e35-fb78-41da-b267-fe621f7f827a",
+      "activity": "Infrastructure",
+      "owner": "Copain Fabrice",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 8,
+      "created_at": "2026-05-19T10:06:20.401Z"
+    },
+    {
+      "id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "64bd3e35-fb78-41da-b267-fe621f7f827a",
+      "activity": "Product development",
+      "owner": "Copain Fabrice",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 9,
+      "created_at": "2026-05-19T10:10:00.176Z"
+    },
+    {
+      "id": "6e203d66-3722-415c-808a-0493de018867",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "section_id": "224291b3-04fa-4e2d-a1bc-d55f484c544d",
+      "activity": "Credit Strategy Deployment",
+      "owner": "RUKISHA",
+      "plan_start": "2026-04-28T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 26,
+      "created_at": "2026-04-29T12:33:40.908Z"
+    },
+    {
+      "id": "f6c25a80-9900-4fb2-859c-2e2f36629db2",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "64bd3e35-fb78-41da-b267-fe621f7f827a",
+      "activity": "MTN Due diligence",
+      "owner": "Copain Fabrice",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 7,
+      "created_at": "2026-05-19T10:04:09.970Z"
+    },
+    {
+      "id": "633942b5-41ec-4c80-a299-b9c2d3198b91",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "0f60756d-b55c-48f5-bd7c-e87f169b9232",
+      "activity": "RDB",
+      "owner": "Copain Fabrice",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 12,
+      "created_at": "2026-05-19T10:31:24.716Z"
+    },
+    {
+      "id": "9f4556cd-88f5-4ea4-95f4-3031c8d28b50",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "1d6ac9d5-bfc4-48db-a781-6fb5d451e033",
+      "activity": "Construction works",
+      "owner": "Robert",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 1,
+      "created_at": "2026-05-19T09:56:00.166Z"
+    },
+    {
+      "id": "a51c97fd-5d13-4ef7-a2a9-492cbb5e8952",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "1d6ac9d5-bfc4-48db-a781-6fb5d451e033",
+      "activity": "Medical Insurance",
+      "owner": "Cyuzuzo",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 2,
+      "created_at": "2026-05-19T09:58:58.773Z"
+    },
+    {
+      "id": "dc2b37b3-7992-435c-b34b-15b30fc64125",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "0f60756d-b55c-48f5-bd7c-e87f169b9232",
+      "activity": "NCSA",
+      "owner": "Copain Fabrice",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 13,
+      "created_at": "2026-05-19T10:33:05.924Z"
+    },
+    {
+      "id": "b00d33fd-1b90-40e3-bb89-e07fc8afb41b",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "1d6ac9d5-bfc4-48db-a781-6fb5d451e033",
+      "activity": "Office transport",
+      "owner": "Cyuzuzo",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 3,
+      "created_at": "2026-05-19T09:59:23.798Z"
+    },
+    {
+      "id": "4e0248b0-8dab-420d-835d-d9e44054d7f7",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "0f60756d-b55c-48f5-bd7c-e87f169b9232",
+      "activity": "Financial reporting center",
+      "owner": "Robert",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 14,
+      "created_at": "2026-05-19T10:33:33.846Z"
+    },
+    {
+      "id": "b08a9021-e47e-4ab8-8c64-40e5f26c3787",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "1d6ac9d5-bfc4-48db-a781-6fb5d451e033",
+      "activity": "Office phones",
+      "owner": "Copain Fabrice",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 4,
+      "created_at": "2026-05-19T09:59:47.247Z"
+    },
+    {
+      "id": "917ba958-24ae-4f45-be09-98877ec69036",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "1d6ac9d5-bfc4-48db-a781-6fb5d451e033",
+      "activity": "Printer",
+      "owner": "Copain Fabrice",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": "2026-05-18T22:00:00.000Z",
+      "actual_duration": 5,
+      "percent_complete": 0,
+      "position": 0,
+      "created_at": "2026-05-19T09:53:23.439Z"
+    },
+    {
+      "id": "a00555b0-40c4-4db6-aee7-69e61bb46b1b",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "activity": "Risk and Compliance",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 16,
+      "created_at": "2026-05-19T10:37:34.063Z"
+    },
+    {
+      "id": "38d1c47a-a8e6-453c-bc18-b047485fcec5",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "activity": "Data Scientist",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 17,
+      "created_at": "2026-05-19T10:38:13.799Z"
+    },
+    {
+      "id": "49ad1289-03cd-43a9-aff6-45de9164e08e",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "activity": "Operations",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 18,
+      "created_at": "2026-05-19T10:38:30.013Z"
+    },
+    {
+      "id": "ace51771-fe91-4f57-a6ca-4a0c6d65fc87",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "activity": "Marketing and PR",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 19,
+      "created_at": "2026-05-19T10:38:41.121Z"
+    },
+    {
+      "id": "1b08bda7-8e5d-4421-bf7f-d0602485b6c2",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "activity": "Sales and Distribution",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 20,
+      "created_at": "2026-05-19T10:39:07.640Z"
+    },
+    {
+      "id": "36bfa6e0-8884-4b03-8043-091715349657",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "activity": "Solution Architect",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 21,
+      "created_at": "2026-05-19T10:39:24.840Z"
+    },
+    {
+      "id": "9b9e0030-62a5-43cb-bcae-3086c7109483",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "activity": "Tech Support",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 22,
+      "created_at": "2026-05-19T10:39:37.724Z"
+    },
+    {
+      "id": "d0bd035b-4497-44b3-bf96-0ce1de0f1774",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "activity": "Customer Experience",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 23,
+      "created_at": "2026-05-19T10:39:59.929Z"
+    },
+    {
+      "id": "451262a8-951e-4828-b88b-e3b94a2c94eb",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "activity": "Credit Officer",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 24,
+      "created_at": "2026-05-19T10:40:13.331Z"
+    },
+    {
+      "id": "e264e074-138d-4e5d-b615-562deffc4ad8",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e16f8111-762d-4447-be61-aabe0b813439",
+      "activity": "Reconciliation and Revenue Assurance",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 25,
+      "created_at": "2026-05-19T10:41:36.105Z"
+    },
+    {
+      "id": "fb64cb19-e4f5-4f96-b9fa-2d391ee36183",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e4a443a1-a22c-40d5-9415-14ec3519cf74",
+      "activity": "Marketing",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 26,
+      "created_at": "2026-05-19T10:47:11.550Z"
+    },
+    {
+      "id": "ee2420ae-f43a-42db-a3f8-3d002793e30b",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e4a443a1-a22c-40d5-9415-14ec3519cf74",
+      "activity": "Operations",
+      "owner": "",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 27,
+      "created_at": "2026-05-19T10:52:13.199Z"
+    },
+    {
+      "id": "c332802b-ea6e-4905-bf86-20a10333cbc7",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "0f60756d-b55c-48f5-bd7c-e87f169b9232",
+      "activity": "Software License Providers",
+      "owner": "Copain Fabrice",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 15,
+      "created_at": "2026-05-19T10:35:57.515Z"
+    },
+    {
+      "id": "0c232604-d3ac-4141-941c-cd77f344ebd5",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "section_id": "e4a443a1-a22c-40d5-9415-14ec3519cf74",
+      "activity": "Finance",
+      "owner": "Rachid",
+      "plan_start": "2026-05-18T22:00:00.000Z",
+      "plan_duration": 5,
+      "actual_start": null,
+      "actual_duration": 0,
+      "percent_complete": 0,
+      "position": 28,
+      "created_at": "2026-05-19T10:54:41.228Z"
+    }
+  ],
+  "rk_subtasks": [
+    {
+      "id": "017983e2-8f4a-4e26-b709-0aafe6544333",
+      "task_id": "27ca17fb-241f-48c7-8157-99358916482b",
+      "title": "Data Flow Diagram",
+      "is_completed": false,
+      "created_at": "2026-04-29T12:22:43.321Z",
+      "assignee": ""
+    },
+    {
+      "id": "9d321633-ff9c-40ce-ae4c-ac55fd8d51bf",
+      "task_id": "9f4556cd-88f5-4ea4-95f4-3031c8d28b50",
+      "title": "Office expansion",
+      "is_completed": false,
+      "created_at": "2026-05-19T09:57:15.218Z",
+      "assignee": ""
+    },
+    {
+      "id": "c7cb939b-7c1f-4ede-b1db-28a86534e747",
+      "task_id": "9f4556cd-88f5-4ea4-95f4-3031c8d28b50",
+      "title": "Lights, ceiling, sockets",
+      "is_completed": false,
+      "created_at": "2026-05-19T09:58:44.653Z",
+      "assignee": ""
+    },
+    {
+      "id": "11bd5d4a-6812-4f02-8b95-9f0a4c563362",
+      "task_id": "1f2d6682-344c-40bf-b368-3f3b555556c1",
+      "title": "Application",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:01:50.624Z",
+      "assignee": ""
+    },
+    {
+      "id": "15d336fe-4ec8-403a-b475-cbd9b6cde4a1",
+      "task_id": "1f2d6682-344c-40bf-b368-3f3b555556c1",
+      "title": "Payment",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:02:03.269Z",
+      "assignee": ""
+    },
+    {
+      "id": "776cf82f-e160-4d81-98f7-e311e80f6389",
+      "task_id": "d81b386e-e3e6-48f8-938d-394e03ef6558",
+      "title": "Rukisha reviews",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:03:18.614Z",
+      "assignee": ""
+    },
+    {
+      "id": "3abd636a-13d8-49d1-827b-b4ce10604d8d",
+      "task_id": "d81b386e-e3e6-48f8-938d-394e03ef6558",
+      "title": "MTN reviews",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:03:25.438Z",
+      "assignee": ""
+    },
+    {
+      "id": "8c8ff366-a984-42cd-b744-7bf49dffaa7f",
+      "task_id": "d81b386e-e3e6-48f8-938d-394e03ef6558",
+      "title": "Contract sign-off",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:03:47.147Z",
+      "assignee": ""
+    },
+    {
+      "id": "af8f1310-9f4f-4255-97ca-3f0489e191da",
+      "task_id": "f6c25a80-9900-4fb2-859c-2e2f36629db2",
+      "title": "Gathering requirements",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:04:48.434Z",
+      "assignee": ""
+    },
+    {
+      "id": "5654bb63-fbf0-4a47-80aa-5c575b269a7b",
+      "task_id": "f6c25a80-9900-4fb2-859c-2e2f36629db2",
+      "title": "Submission follow up",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:04:59.541Z",
+      "assignee": ""
+    },
+    {
+      "id": "cb322e73-d7f3-42af-acae-a9f438f3cd49",
+      "task_id": "f6c25a80-9900-4fb2-859c-2e2f36629db2",
+      "title": "Anti-money laundering policy development",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:06:12.609Z",
+      "assignee": ""
+    },
+    {
+      "id": "eadc3890-32f9-4634-820b-52b6d59f8d3c",
+      "task_id": "2375bc41-b25c-4d17-b6ed-9a4685ff656c",
+      "title": "Infrastructure TORs",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:07:08.681Z",
+      "assignee": ""
+    },
+    {
+      "id": "cb10d24a-ea9a-4c98-b684-04568d2870a6",
+      "task_id": "2375bc41-b25c-4d17-b6ed-9a4685ff656c",
+      "title": "Virtualisation quotations",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:07:23.942Z",
+      "assignee": ""
+    },
+    {
+      "id": "f7a76ad2-2025-422a-96d8-5ca111d86a6f",
+      "task_id": "2375bc41-b25c-4d17-b6ed-9a4685ff656c",
+      "title": "Provider selection",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:07:41.085Z",
+      "assignee": ""
+    },
+    {
+      "id": "ad183bdf-58d8-4fac-a782-65b591dfb4a4",
+      "task_id": "2375bc41-b25c-4d17-b6ed-9a4685ff656c",
+      "title": "Contracting",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:07:53.874Z",
+      "assignee": ""
+    },
+    {
+      "id": "674c1bb0-779c-4f6c-a14f-5ced7286d947",
+      "task_id": "2375bc41-b25c-4d17-b6ed-9a4685ff656c",
+      "title": "Recruitment of a solution architect",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:08:16.931Z",
+      "assignee": ""
+    },
+    {
+      "id": "58badfe3-cd12-4d36-adab-0e8cdc764e60",
+      "task_id": "2375bc41-b25c-4d17-b6ed-9a4685ff656c",
+      "title": "Set up and configuration",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:09:40.466Z",
+      "assignee": ""
+    },
+    {
+      "id": "172215a1-d38e-46ee-b754-3a178cf31793",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "score card development",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:16:51.519Z",
+      "assignee": ""
+    },
+    {
+      "id": "1a256009-8800-4c5a-9e97-2297a359020d",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "Business Rule Engine(BRE) Configuration",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:17:29.530Z",
+      "assignee": ""
+    },
+    {
+      "id": "250ec085-5eb8-4683-962d-31ed87cf83a0",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "Data Scoring",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:17:46.782Z",
+      "assignee": ""
+    },
+    {
+      "id": "16f5f525-ec9f-470d-b4da-a6b31af84157",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "Site to site connectivity",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:18:19.457Z",
+      "assignee": ""
+    },
+    {
+      "id": "3e1276f2-5f94-4742-9238-de974094ef00",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "System intergration test",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:18:31.329Z",
+      "assignee": ""
+    },
+    {
+      "id": "462d505d-16f5-4c6e-bc14-88a416c44f46",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "Application development",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:18:44.336Z",
+      "assignee": ""
+    },
+    {
+      "id": "399a5eaf-295e-40e7-856a-54bf167bdb27",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "Test plan development",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:21:12.343Z",
+      "assignee": ""
+    },
+    {
+      "id": "59c75407-2528-4706-8f5f-248bf89ebf25",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "Penetration testing",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:21:47.238Z",
+      "assignee": ""
+    },
+    {
+      "id": "1a3d6bbb-4bf7-40eb-81a9-914cd4e70fbe",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "User acceptance test",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:22:02.497Z",
+      "assignee": ""
+    },
+    {
+      "id": "581ccb91-1c78-454c-96b6-c3de47eff32f",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "Pilot",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:22:12.950Z",
+      "assignee": ""
+    },
+    {
+      "id": "be6820a0-89f3-431d-a932-e084183dbe02",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "Pilot exit criteria",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:23:08.238Z",
+      "assignee": ""
+    },
+    {
+      "id": "20aef220-0c97-4993-9185-a03a4c9b3ef8",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "Pilot report",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:24:02.243Z",
+      "assignee": ""
+    },
+    {
+      "id": "c97dde1c-d93c-4ef8-9be3-3a237f5dc6e2",
+      "task_id": "45f193c0-c375-459f-9d32-d18d954a0d67",
+      "title": "Go-live",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:24:09.785Z",
+      "assignee": ""
+    },
+    {
+      "id": "10dd16b5-2c15-4794-ab2d-d664b9250bca",
+      "task_id": "b59cf32e-7ba5-4edf-8247-8fc3c98f634c",
+      "title": "Contract review and sign-off",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:25:47.905Z",
+      "assignee": ""
+    },
+    {
+      "id": "062c4429-7e8e-40b2-b772-a199e26a7f6b",
+      "task_id": "b59cf32e-7ba5-4edf-8247-8fc3c98f634c",
+      "title": "FSD Completion and Sign-off",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:26:04.047Z",
+      "assignee": ""
+    },
+    {
+      "id": "d013b94c-c675-4abd-9fad-febc8382feeb",
+      "task_id": "b59cf32e-7ba5-4edf-8247-8fc3c98f634c",
+      "title": "High-level Design review and sign-off",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:26:34.787Z",
+      "assignee": ""
+    },
+    {
+      "id": "cbdb1160-b95a-48b9-8b69-dbfa1a769384",
+      "task_id": "b59cf32e-7ba5-4edf-8247-8fc3c98f634c",
+      "title": "Resource vetting and clearance",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:27:37.458Z",
+      "assignee": ""
+    },
+    {
+      "id": "c00bb504-0239-4d2b-8d88-eca77b54a3df",
+      "task_id": "b59cf32e-7ba5-4edf-8247-8fc3c98f634c",
+      "title": "On-site resource",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:28:11.232Z",
+      "assignee": ""
+    },
+    {
+      "id": "de5498e1-936c-4b68-8a6c-6a0875f93f95",
+      "task_id": "41fded22-a1c8-4175-a327-5308371e3460",
+      "title": "Proposal request",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:30:36.950Z",
+      "assignee": ""
+    },
+    {
+      "id": "a48bc794-373b-4c69-bf5f-eb41abb1e7b8",
+      "task_id": "41fded22-a1c8-4175-a327-5308371e3460",
+      "title": "Contracting",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:30:46.352Z",
+      "assignee": ""
+    },
+    {
+      "id": "b6b8a945-45a1-4961-b817-1f0d5a93b880",
+      "task_id": "41fded22-a1c8-4175-a327-5308371e3460",
+      "title": "Integration",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:31:10.474Z",
+      "assignee": ""
+    },
+    {
+      "id": "3a201481-d685-4134-9de5-77b4b85019e9",
+      "task_id": "633942b5-41ec-4c80-a299-b9c2d3198b91",
+      "title": "MOU",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:31:54.118Z",
+      "assignee": ""
+    },
+    {
+      "id": "c815823a-52d1-4e96-b2e6-8e1e761c8541",
+      "task_id": "633942b5-41ec-4c80-a299-b9c2d3198b91",
+      "title": "Data Exchange",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:32:04.067Z",
+      "assignee": ""
+    },
+    {
+      "id": "b3407aa0-5095-4c9f-92a0-1fc0fb359e2c",
+      "task_id": "dc2b37b3-7992-435c-b34b-15b30fc64125",
+      "title": "Data Protection certifications",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:35:31.000Z",
+      "assignee": ""
+    },
+    {
+      "id": "b037c7c4-54d9-451b-a184-09e36a36956a",
+      "task_id": "c332802b-ea6e-4905-bf86-20a10333cbc7",
+      "title": "Oracle",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:36:29.941Z",
+      "assignee": ""
+    },
+    {
+      "id": "e0a1f8d3-6aea-4d86-ab4d-e6b1c956a499",
+      "task_id": "c332802b-ea6e-4905-bf86-20a10333cbc7",
+      "title": "Fortnet",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:36:40.555Z",
+      "assignee": ""
+    },
+    {
+      "id": "2b591b15-71b2-4d1b-9c01-84f7afe4182a",
+      "task_id": "fb64cb19-e4f5-4f96-b9fa-2d391ee36183",
+      "title": "Sales and Distribution",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:50:10.491Z",
+      "assignee": ""
+    },
+    {
+      "id": "4a704c56-90b3-4107-aa51-87829e66b874",
+      "task_id": "fb64cb19-e4f5-4f96-b9fa-2d391ee36183",
+      "title": "Customer support",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:50:42.464Z",
+      "assignee": ""
+    },
+    {
+      "id": "3a80aa24-49fc-4cd3-8f91-b806c682b504",
+      "task_id": "fb64cb19-e4f5-4f96-b9fa-2d391ee36183",
+      "title": "Branding",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:50:54.266Z",
+      "assignee": ""
+    },
+    {
+      "id": "75a5760c-dcbd-441a-9bd2-f5796a0c11d5",
+      "task_id": "fb64cb19-e4f5-4f96-b9fa-2d391ee36183",
+      "title": "Advetisement",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:51:02.168Z",
+      "assignee": ""
+    },
+    {
+      "id": "3cbf845e-4128-433d-9449-962f34191d33",
+      "task_id": "0c232604-d3ac-4141-941c-cd77f344ebd5",
+      "title": "GL Mapping",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:55:08.105Z",
+      "assignee": ""
+    },
+    {
+      "id": "6627f36a-b421-4511-8492-97d42a628ba4",
+      "task_id": "0c232604-d3ac-4141-941c-cd77f344ebd5",
+      "title": "BC intergration with panamax",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:58:12.357Z",
+      "assignee": ""
+    },
+    {
+      "id": "0a3f35c8-ba3a-459c-af6a-b81e8fa9082d",
+      "task_id": "0c232604-d3ac-4141-941c-cd77f344ebd5",
+      "title": "Billing and reconciliation processes",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:59:43.362Z",
+      "assignee": ""
+    },
+    {
+      "id": "dd75a6f6-a922-4549-b12c-5f50435e8555",
+      "task_id": "0c232604-d3ac-4141-941c-cd77f344ebd5",
+      "title": "BNR Reporting",
+      "is_completed": false,
+      "created_at": "2026-05-19T10:59:49.075Z",
+      "assignee": ""
+    },
+    {
+      "id": "1f8a76c1-423e-490c-a0cd-210b50ca92e2",
+      "task_id": "0c232604-d3ac-4141-941c-cd77f344ebd5",
+      "title": "External reporting",
+      "is_completed": false,
+      "created_at": "2026-05-19T11:00:10.333Z",
+      "assignee": ""
+    },
+    {
+      "id": "7d5cb58a-2779-438d-b1af-835fefa654e2",
+      "task_id": "0c232604-d3ac-4141-941c-cd77f344ebd5",
+      "title": "Settlement process",
+      "is_completed": false,
+      "created_at": "2026-05-19T11:00:54.675Z",
+      "assignee": ""
+    },
+    {
+      "id": "739bbc7e-77a1-47be-a367-93202223e224",
+      "task_id": "0c232604-d3ac-4141-941c-cd77f344ebd5",
+      "title": "Replenishment process",
+      "is_completed": false,
+      "created_at": "2026-05-19T11:01:02.126Z",
+      "assignee": ""
+    },
+    {
+      "id": "525815d7-cfdb-4533-99cf-e4261852935b",
+      "task_id": "0c232604-d3ac-4141-941c-cd77f344ebd5",
+      "title": "Tax Compliance",
+      "is_completed": false,
+      "created_at": "2026-05-19T11:01:28.101Z",
+      "assignee": ""
+    },
+    {
+      "id": "4035dd11-9c82-43df-a0a5-f93e123a7b5c",
+      "task_id": "9f4556cd-88f5-4ea4-95f4-3031c8d28b50",
+      "title": "Canopy",
+      "is_completed": false,
+      "created_at": "2026-05-19T09:57:07.132Z",
+      "assignee": ""
+    },
+    {
+      "id": "b706c54c-01cb-498c-b6dc-232ba77f624e",
+      "task_id": "bf53184c-5fee-4584-a41d-0abe376b2179",
+      "title": "Template to be shared",
+      "is_completed": false,
+      "created_at": "2026-05-22T08:55:34.595Z",
+      "assignee": ""
+    },
+    {
+      "id": "a2ffeb08-8121-480d-8632-f9467a37181e",
+      "task_id": "917ba958-24ae-4f45-be09-98877ec69036",
+      "title": "Purchase",
+      "is_completed": false,
+      "created_at": "2026-06-05T12:53:54.780Z",
+      "assignee": "Copain Fabrice"
+    },
+    {
+      "id": "e8b49af2-a0ab-414a-ba80-c9577f613632",
+      "task_id": "917ba958-24ae-4f45-be09-98877ec69036",
+      "title": "Installation & Configuration",
+      "is_completed": false,
+      "created_at": "2026-06-05T12:54:01.340Z",
+      "assignee": "Copain Fabrice"
+    }
+  ],
+  "rk_task_dependencies": [],
+  "rk_stakeholders": [
+    {
+      "id": "5c2ff182-0162-4370-bac1-e4e46d632395",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "name": "MMRL",
+      "role": "Distribution Channel & Data",
+      "created_at": "2026-05-12T09:02:25.491Z",
+      "updated_at": "2026-05-12T09:02:25.491Z"
+    },
+    {
+      "id": "9ff6ce3b-456d-43fc-a6e9-5a53d6270e14",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "name": "RUKISHA",
+      "role": "Funds, license & Technology",
+      "created_at": "2026-05-12T09:02:25.491Z",
+      "updated_at": "2026-05-12T09:02:25.491Z"
+    }
+  ],
+  "rk_team": [
+    {
+      "id": "f98673bf-d28c-44ad-bc2d-7a7cd76fa917",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "email": "cbienaime@rukisha.co.rw",
+      "name": "Copain Fabrice",
+      "added_at": "2026-05-12T09:02:25.482Z",
+      "role": "PM"
+    },
+    {
+      "id": "ed5c0537-bd31-4fcf-9629-d89ec13d4105",
+      "project_id": "872393fc-796f-4768-b293-22e32f9917a4",
+      "email": "florence.niyonshuti@mtn.com",
+      "name": "Florence Niyonshuti",
+      "added_at": "2026-05-12T09:02:25.482Z",
+      "role": "PM"
+    },
+    {
+      "id": "641ca53a-d146-4042-b3a5-aeba89d92ff1",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "email": "cbienaime@rukisha.co.rw",
+      "name": "Copain Fabrice",
+      "added_at": "2026-06-05T12:33:13.604Z",
+      "role": "PM"
+    },
+    {
+      "id": "4155ef3c-afc0-40c8-bb5d-edf37f7f70db",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "email": "lcyuzuzo@rukisha.co.rw",
+      "name": "Cyuzuzo",
+      "added_at": "2026-06-05T12:33:13.604Z",
+      "role": "PM"
+    },
+    {
+      "id": "89d5bf33-cfd5-4681-b838-198429a2d147",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "email": "rrwakabogo@rukisha.co.rw",
+      "name": "Robert",
+      "added_at": "2026-06-05T12:33:13.604Z",
+      "role": "Staff"
+    },
+    {
+      "id": "31df0aa5-1aa5-4f4d-9e60-b5e6bb7a93bc",
+      "project_id": "75dd9e22-2551-41ce-926f-4232d1048b32",
+      "email": "hrachid@rukisha.co.rw",
+      "name": "Rachid",
+      "added_at": "2026-06-05T12:33:13.604Z",
+      "role": "Staff"
+    }
+  ]
+}

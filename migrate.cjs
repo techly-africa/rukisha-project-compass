@@ -150,6 +150,45 @@ async function run() {
     console.error("Failed to seed super admins:", err.message);
   }
 
+  // Auto-restore project data if database is empty
+  try {
+    const projCheck = await client.query("SELECT count(*) FROM public.rk_project;");
+    const count = parseInt(projCheck.rows[0].count, 10);
+    if (count === 0) {
+      console.log("No projects found in database. Auto-restoring default project dataset...");
+      const seedFile = path.join(__dirname, "seed_backup_data.json");
+      if (fs.existsSync(seedFile)) {
+        const seedData = JSON.parse(fs.readFileSync(seedFile, "utf8"));
+        const order = [
+          "rk_superadmins",
+          "rk_project",
+          "rk_sections",
+          "rk_tasks",
+          "rk_subtasks",
+          "rk_task_dependencies",
+          "rk_stakeholders",
+          "rk_team",
+        ];
+        for (const table of order) {
+          const rows = seedData[table] || [];
+          if (rows.length === 0) continue;
+          const keys = Object.keys(rows[0]);
+          const cols = keys.map((k) => `"${k}"`).join(", ");
+          for (const row of rows) {
+            const vals = keys.map((k) => row[k]);
+            const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
+            const query = `INSERT INTO public."${table}" (${cols}) VALUES (${placeholders}) ON CONFLICT DO NOTHING;`;
+            await client.query(query, vals);
+          }
+          console.log(`Auto-restored ${rows.length} records into ${table}.`);
+        }
+      }
+    }
+  } catch (seedErr) {
+    console.error("Error auto-restoring project data:", seedErr.message);
+  }
+
+
   await client.end();
   console.log("Migration script finished.");
 }

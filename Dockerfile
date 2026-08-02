@@ -16,6 +16,8 @@ COPY --from=builder /app/server.cjs ./server.cjs
 COPY --from=builder /app/migrate.cjs ./migrate.cjs
 COPY --from=builder /app/migrate_data.cjs ./migrate_data.cjs
 COPY --from=builder /app/supabase_schema_backup.sql ./supabase_schema_backup.sql
+COPY --from=builder /app/seed_backup_data.json ./seed_backup_data.json
+
 
 EXPOSE 3000
 CMD ["sh", "-c", "node migrate.cjs && node server.cjs"]
