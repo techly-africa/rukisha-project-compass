@@ -198,8 +198,7 @@ async function run() {
         CASE WHEN role IN ('Admin', 'PM') THEN role ELSE 'Staff' END,
         CASE WHEN role IN ('Admin', 'PM') THEN role ELSE 'Staff' END
       FROM public.rk_team
-      ON CONFLICT (org_id, email) DO UPDATE 
-      SET org_role = EXCLUDED.org_role, role = EXCLUDED.role WHERE public.rk_org_members.org_role = 'Staff' OR public.rk_org_members.role = 'Staff';
+      ON CONFLICT (org_id, email) DO NOTHING;
 
       INSERT INTO public.rk_org_members (org_id, email, name, org_role, role)
       SELECT DISTINCT 
@@ -209,7 +208,7 @@ async function run() {
         'Admin',
         'Admin'
       FROM public.rk_superadmins
-      ON CONFLICT (org_id, email) DO UPDATE SET org_role = 'Admin', role = 'Admin';
+      ON CONFLICT (org_id, email) DO NOTHING;
 
       UPDATE public.rk_org_members SET role = org_role WHERE role IS NULL;
       UPDATE public.rk_org_members SET org_role = role WHERE org_role IS NULL;
@@ -304,11 +303,20 @@ async function run() {
     const projCheck = await client.query("SELECT count(*) FROM public.rk_project;");
     const count = parseInt(projCheck.rows[0].count, 10);
     if (count === 0) {
-      console.log("No projects found in database. Auto-restoring default project dataset...");
+      console.log("No projects found in database. Searching for latest dataset backup...");
+      const liveBackupFile = path.join(__dirname, "live_database_backup.json");
       const seedFile = path.join(__dirname, "seed_backup_data.json");
-      if (fs.existsSync(seedFile)) {
-        const seedData = JSON.parse(fs.readFileSync(seedFile, "utf8"));
+      const targetFile = fs.existsSync(liveBackupFile)
+        ? liveBackupFile
+        : fs.existsSync(seedFile)
+          ? seedFile
+          : null;
+
+      if (targetFile) {
+        console.log(`Auto-restoring dataset from: ${path.basename(targetFile)}`);
+        const seedData = JSON.parse(fs.readFileSync(targetFile, "utf8"));
         const order = [
+          "rk_organizations",
           "rk_superadmins",
           "rk_project",
           "rk_sections",
@@ -317,17 +325,28 @@ async function run() {
           "rk_task_dependencies",
           "rk_stakeholders",
           "rk_team",
+          "rk_org_members",
+          "rk_role_permissions",
+          "rk_user_permissions",
+          "rk_task_comments",
+          "rk_task_attachments",
+          "rk_documents",
+          "rk_document_content",
         ];
         for (const table of order) {
           const rows = seedData[table] || [];
-          if (rows.length === 0) continue;
+          if (!Array.isArray(rows) || rows.length === 0) continue;
           const keys = Object.keys(rows[0]);
           const cols = keys.map((k) => `"${k}"`).join(", ");
           for (const row of rows) {
             const vals = keys.map((k) => row[k]);
             const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
             const query = `INSERT INTO public."${table}" (${cols}) VALUES (${placeholders}) ON CONFLICT DO NOTHING;`;
-            await client.query(query, vals);
+            try {
+              await client.query(query, vals);
+            } catch (rErr) {
+              console.warn(`Notice inserting into ${table}:`, rErr.message);
+            }
           }
           console.log(`Auto-restored ${rows.length} records into ${table}.`);
         }

@@ -279,6 +279,23 @@ async function loadAll(id?: string) {
         attachments = attRes.data || [];
       }
 
+      // Fetch org members to ensure all organization users are available in owner dropdowns
+      const { data: orgMembersData } = await (supabase as any)
+        .from("rk_org_members")
+        .select("id, email, name");
+
+      const combinedMembersMap = new Map<string, { id: string; email: string; name: string }>();
+      (allTeamMembers || []).forEach((m: any) => {
+        const em = m.email.toLowerCase().trim();
+        combinedMembersMap.set(em, { id: m.id, email: m.email, name: m.name || m.email });
+      });
+      (orgMembersData || []).forEach((m: any) => {
+        const em = m.email.toLowerCase().trim();
+        if (!combinedMembersMap.has(em)) {
+          combinedMembersMap.set(em, { id: m.id, email: m.email, name: m.name || m.email });
+        }
+      });
+
       if (!project) {
         setState((s) => ({ ...s, id: null, userProjects: projectList, userEmail, isSuperAdmin }));
         loaded = true;
@@ -306,11 +323,7 @@ async function loadAll(id?: string) {
             (attachments || []).filter((a: any) => a.task_id === t.id),
           ),
         ),
-        teamMembers: (allTeamMembers || []).map((m: any) => ({
-          id: m.id,
-          email: m.email,
-          name: m.name || m.email,
-        })),
+        teamMembers: Array.from(combinedMembersMap.values()),
         darkMode: localDark,
         userProjects: projectList,
         userEmail,

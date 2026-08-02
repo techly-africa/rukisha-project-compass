@@ -517,6 +517,9 @@ app.post("/api/db", async (req, res) => {
       sql += ` RETURNING *`;
 
       const dbRes = await pool.query(sql, values);
+      if (action !== "select") {
+        triggerLiveBackup();
+      }
       return res.json({ data: dbRes.rows, error: null });
     }
 
@@ -679,7 +682,52 @@ app.use((req, res, next) => {
 
 
 
+// Live database backup helper to preserve assigned users & project changes across container restarts
+let backupTimer = null;
+function triggerLiveBackup() {
+  if (backupTimer) clearTimeout(backupTimer);
+  backupTimer = setTimeout(async () => {
+    try {
+      const tables = [
+        "rk_organizations",
+        "rk_superadmins",
+        "rk_project",
+        "rk_sections",
+        "rk_tasks",
+        "rk_subtasks",
+        "rk_task_dependencies",
+        "rk_stakeholders",
+        "rk_team",
+        "rk_org_members",
+        "rk_role_permissions",
+        "rk_user_permissions",
+        "rk_task_comments",
+        "rk_task_attachments",
+        "rk_documents",
+        "rk_document_content",
+      ];
+      const backupData = {};
+      for (const t of tables) {
+        try {
+          const res = await pool.query(`SELECT * FROM public."${t}";`);
+          backupData[t] = res.rows;
+        } catch (err) {
+          backupData[t] = [];
+        }
+      }
+      fs.writeFileSync(
+        path.join(__dirname, "live_database_backup.json"),
+        JSON.stringify(backupData, null, 2),
+      );
+      console.log("[Live Backup] Persisted live database snapshot.");
+    } catch (err) {
+      console.error("[Live Backup Error]:", err.message);
+    }
+  }, 2000);
+}
+
 // Start server
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server listening on port ${port}`);
+  triggerLiveBackup();
 });
