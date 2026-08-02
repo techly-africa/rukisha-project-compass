@@ -715,11 +715,17 @@ function triggerLiveBackup() {
           backupData[t] = [];
         }
       }
-      fs.writeFileSync(
-        path.join(__dirname, "live_database_backup.json"),
-        JSON.stringify(backupData, null, 2),
-      );
-      console.log("[Live Backup] Persisted live database snapshot.");
+      let targetPath = path.join(__dirname, "live_database_backup.json");
+      const volDir = "/var/lib/postgresql/data";
+      if (fs.existsSync(volDir)) {
+        try {
+          fs.accessSync(volDir, fs.constants.W_OK);
+          targetPath = path.join(volDir, "live_database_backup.json");
+        } catch (e) {}
+      }
+
+      fs.writeFileSync(targetPath, JSON.stringify(backupData, null, 2));
+      console.log(`[Live Backup] Persisted live database snapshot to ${targetPath}`);
     } catch (err) {
       console.error("[Live Backup Error]:", err.message);
     }

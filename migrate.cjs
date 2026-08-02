@@ -304,16 +304,19 @@ async function run() {
     const count = parseInt(projCheck.rows[0].count, 10);
     if (count === 0) {
       console.log("No projects found in database. Searching for latest dataset backup...");
-      const liveBackupFile = path.join(__dirname, "live_database_backup.json");
+      const volFile = "/var/lib/postgresql/data/live_database_backup.json";
+      const localFile = path.join(__dirname, "live_database_backup.json");
       const seedFile = path.join(__dirname, "seed_backup_data.json");
-      const targetFile = fs.existsSync(liveBackupFile)
-        ? liveBackupFile
-        : fs.existsSync(seedFile)
-          ? seedFile
-          : null;
+      const targetFile = fs.existsSync(volFile)
+        ? volFile
+        : fs.existsSync(localFile)
+          ? localFile
+          : fs.existsSync(seedFile)
+            ? seedFile
+            : null;
 
       if (targetFile) {
-        console.log(`Auto-restoring dataset from: ${path.basename(targetFile)}`);
+        console.log(`Auto-restoring dataset from: ${targetFile}`);
         const seedData = JSON.parse(fs.readFileSync(targetFile, "utf8"));
         const order = [
           "rk_organizations",
