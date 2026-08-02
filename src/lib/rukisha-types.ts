@@ -14,6 +14,23 @@ export interface SubTask {
   assignee?: string;
 }
 
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  author: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface TaskAttachment {
+  id: string;
+  taskId: string;
+  name: string;
+  url: string;
+  size?: string;
+  createdAt: string;
+}
+
 export interface Task {
   id: string;
   sectionId: string;
@@ -26,6 +43,9 @@ export interface Task {
   percentComplete: number; // 0-100
   subTasks?: SubTask[];
   dependencies?: string[];
+  description?: string;
+  comments?: TaskComment[];
+  attachments?: TaskAttachment[];
 }
 
 export interface Section {

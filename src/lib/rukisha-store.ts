@@ -101,7 +101,13 @@ function normalizeDate(raw: string | null | undefined): string {
 function mapSection(s: DbSection): Section {
   return { id: s.id, name: s.name, color: s.color };
 }
-function mapTask(t: DbTask, subtasks: DbSubTask[] = [], dependencies: string[] = []): Task {
+function mapTask(
+  t: DbTask,
+  subtasks: DbSubTask[] = [],
+  dependencies: string[] = [],
+  comments: any[] = [],
+  attachments: any[] = [],
+): Task {
   return {
     id: t.id,
     sectionId: t.section_id,
@@ -114,6 +120,22 @@ function mapTask(t: DbTask, subtasks: DbSubTask[] = [], dependencies: string[] =
     percentComplete: t.percent_complete,
     subTasks: subtasks.map(mapSubTask),
     dependencies,
+    description: (t as any).description || "",
+    comments: comments.map((c: any) => ({
+      id: c.id,
+      taskId: c.task_id,
+      author: c.author,
+      content: c.content,
+      createdAt: c.created_at,
+    })),
+    attachments: attachments.map((a: any) => ({
+      id: a.id,
+      taskId: a.task_id,
+      name: a.name,
+      url: a.url,
+      size: a.size || "",
+      createdAt: a.created_at,
+    })),
   };
 }
 function mapSubTask(s: DbSubTask) {
@@ -235,24 +257,20 @@ async function loadAll(id?: string) {
 
     let subtasks: any[] = [];
     let dependencies: any[] = [];
+    let comments: any[] = [];
+    let attachments: any[] = [];
     if (tasks && tasks.length > 0) {
-      const { data: stData } = await supabase
-        .from("rk_subtasks")
-        .select("*")
-        .in(
-          "task_id",
-          tasks.map((t: DbTask) => t.id),
-        );
-      subtasks = stData || [];
-
-      const { data: depsData } = await supabase
-        .from("rk_task_dependencies")
-        .select("*")
-        .in(
-          "task_id",
-          tasks.map((t: DbTask) => t.id),
-        );
-      dependencies = depsData || [];
+      const taskIds = tasks.map((t: DbTask) => t.id);
+      const [stRes, depsRes, commRes, attRes] = await Promise.all([
+        supabase.from("rk_subtasks").select("*").in("task_id", taskIds),
+        supabase.from("rk_task_dependencies").select("*").in("task_id", taskIds),
+        (supabase as any).from("rk_task_comments").select("*").in("task_id", taskIds).order("created_at"),
+        (supabase as any).from("rk_task_attachments").select("*").in("task_id", taskIds).order("created_at"),
+      ]);
+      subtasks = stRes.data || [];
+      dependencies = depsRes.data || [];
+      comments = commRes.data || [];
+      attachments = attRes.data || [];
     }
 
     if (!project) {
@@ -278,6 +296,8 @@ async function loadAll(id?: string) {
           (dependencies || [])
             .filter((d: any) => d.task_id === t.id)
             .map((d: any) => d.depends_on_task_id),
+          (comments || []).filter((c: any) => c.task_id === t.id),
+          (attachments || []).filter((a: any) => a.task_id === t.id),
         ),
       ),
       teamMembers: (allTeamMembers || []).map((m: any) => ({
@@ -434,6 +454,9 @@ export const actions = {
           patch.percentComplete !== undefined ? patch.percentComplete : task.percentComplete,
         p_section_id: patch.sectionId !== undefined ? patch.sectionId : task.sectionId,
       });
+      if (patch.description !== undefined) {
+        await supabase.from("rk_tasks").update({ description: patch.description }).eq("id", id);
+      }
       if (error) throw error;
     } catch (err) {
       console.error("Task update failed:", err);
@@ -729,6 +752,92 @@ export const actions = {
       ),
     }));
     await loadAll();
+  },
+
+  async addComment(taskId: string, content: string) {
+    if (!content.trim()) return;
+    const author = userEmail
+      ? userEmail.split("@")[0].replace(/\./g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+      : "Team Member";
+
+    try {
+      const { data, error } = await (supabase as any)
+        .from("rk_task_comments")
+        .insert({ task_id: taskId, author, content: content.trim() })
+        .select()
+        .single();
+
+      const newComment = data
+        ? { id: data.id, taskId: data.task_id, author: data.author, content: data.content, createdAt: data.created_at }
+        : { id: uid(), taskId, author, content: content.trim(), createdAt: new Date().toISOString() };
+
+      setState((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) =>
+          t.id === taskId
+            ? { ...t, comments: [...(t.comments || []), newComment] }
+            : t,
+        ),
+      }));
+      toast.success("Comment posted");
+    } catch (err: any) {
+      console.error("Failed to add comment:", err);
+      toast.error("Failed to add comment");
+    }
+  },
+
+  async deleteComment(taskId: string, commentId: string) {
+    setState((s) => ({
+      ...s,
+      tasks: s.tasks.map((t) =>
+        t.id === taskId
+          ? { ...t, comments: (t.comments || []).filter((c) => c.id !== commentId) }
+          : t,
+      ),
+    }));
+    await (supabase as any).from("rk_task_comments").delete().eq("id", commentId);
+    toast.success("Comment deleted");
+  },
+
+  async addAttachment(taskId: string, attachment: { name: string; url: string; size?: string }) {
+    if (!attachment.name || !attachment.url) return;
+    try {
+      const { data } = await (supabase as any)
+        .from("rk_task_attachments")
+        .insert({ task_id: taskId, name: attachment.name, url: attachment.url, size: attachment.size || "" })
+        .select()
+        .single();
+
+      const newAtt = data
+        ? { id: data.id, taskId: data.task_id, name: data.name, url: data.url, size: data.size || "", createdAt: data.created_at }
+        : { id: uid(), taskId, name: attachment.name, url: attachment.url, size: attachment.size || "", createdAt: new Date().toISOString() };
+
+      setState((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) =>
+          t.id === taskId
+            ? { ...t, attachments: [...(t.attachments || []), newAtt] }
+            : t,
+        ),
+      }));
+      toast.success("Attachment added");
+    } catch (err: any) {
+      console.error("Failed to add attachment:", err);
+      toast.error("Failed to add attachment");
+    }
+  },
+
+  async deleteAttachment(taskId: string, attachmentId: string) {
+    setState((s) => ({
+      ...s,
+      tasks: s.tasks.map((t) =>
+        t.id === taskId
+          ? { ...t, attachments: (t.attachments || []).filter((a) => a.id !== attachmentId) }
+          : t,
+      ),
+    }));
+    await (supabase as any).from("rk_task_attachments").delete().eq("id", attachmentId);
+    toast.success("Attachment deleted");
   },
   importState(_next: ProjectState) {
     console.warn("importState is disabled when synced to Cloud.");

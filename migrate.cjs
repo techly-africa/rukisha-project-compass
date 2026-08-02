@@ -128,6 +128,34 @@ async function run() {
     console.error("Failed to create document content table:", err.message);
   }
 
+  // Create description, comments, attachments tables for tasks
+  try {
+    console.log("Ensuring task description, comments, and attachments tables...");
+    await client.query(`
+      ALTER TABLE public.rk_tasks ADD COLUMN IF NOT EXISTS description text DEFAULT '' NOT NULL;
+
+      CREATE TABLE IF NOT EXISTS public.rk_task_comments (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        task_id uuid NOT NULL REFERENCES public.rk_tasks(id) ON DELETE CASCADE,
+        author text NOT NULL,
+        content text NOT NULL,
+        created_at timestamp with time zone DEFAULT now() NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS public.rk_task_attachments (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        task_id uuid NOT NULL REFERENCES public.rk_tasks(id) ON DELETE CASCADE,
+        name text NOT NULL,
+        url text NOT NULL,
+        size text DEFAULT '' NOT NULL,
+        created_at timestamp with time zone DEFAULT now() NOT NULL
+      );
+    `);
+    console.log("Task description, comments, and attachments tables ready.");
+  } catch (err) {
+    console.error("Failed to create task comments/attachments tables:", err.message);
+  }
+
   // Migrate existing team roles from Member to Staff
   try {
     console.log("Migrating team roles from 'Member' to 'Staff'...");

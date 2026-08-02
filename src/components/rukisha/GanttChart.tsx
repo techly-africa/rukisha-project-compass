@@ -9,6 +9,7 @@ import {
 } from "@/lib/rukisha-store";
 import type { Section, Task, Stakeholder } from "@/lib/rukisha-types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TaskDetailModal, CreateTaskModal } from "./TaskModals";
 import { Check, UserPlus, Users, Plus, Eye } from "lucide-react";
 import {
   Dialog,
@@ -652,7 +653,7 @@ function SectionRow({
   );
 }
 
-export { TaskDetailModal, CreateTaskModal } from "./TaskModals";
+export { TaskDetailModal, CreateTaskModal };
 
 function TaskRow({
   task,
