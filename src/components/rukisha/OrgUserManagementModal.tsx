@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { actions } from "@/lib/rukisha-store";
-import { OrgMember } from "@/lib/rukisha-types";
-import { X, UserPlus, Trash2, Edit2, Check, ChevronDown, FolderOpen, RefreshCw, Building, Save } from "lucide-react";
+import { OrgMember, PermissionKey, RolePermission } from "@/lib/rukisha-types";
+import { X, UserPlus, Trash2, Edit2, Check, ChevronDown, FolderOpen, RefreshCw, Building, Save, Shield, Key } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,7 +12,20 @@ interface Props {
   onClose: () => void;
 }
 
-type Tab = "directory" | "invite" | "projects" | "settings";
+type Tab = "directory" | "invite" | "projects" | "settings" | "matrix";
+
+const PERMISSION_LABELS: { key: PermissionKey; label: string; description: string }[] = [
+  { key: "projects:create", label: "Create Projects", description: "Create new projects in organization" },
+  { key: "projects:delete", label: "Delete Projects", description: "Permanently delete existing projects" },
+  { key: "projects:edit_setup", label: "Edit Project Setup", description: "Modify project name, dates, & team" },
+  { key: "tasks:create", label: "Create Tasks", description: "Add new tasks and subtasks" },
+  { key: "tasks:edit_all", label: "Edit Any Task", description: "Edit all tasks vs assigned tasks only" },
+  { key: "tasks:delete", label: "Delete Tasks", description: "Delete tasks and subtasks" },
+  { key: "comments:create", label: "Post Comments", description: "Add comments and activity updates" },
+  { key: "comments:delete", label: "Delete Comments", description: "Remove comments from tasks" },
+  { key: "members:manage", label: "Manage Members", description: "Invite, edit, or remove org members" },
+  { key: "vault:manage", label: "Manage Vault", description: "Upload or delete document vault files" },
+];
 
 const ROLE_COLORS: Record<string, string> = {
   Admin:
@@ -60,6 +73,24 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
   useEffect(() => {
     setOrgNameInput(resolvedOrgName);
   }, [resolvedOrgName]);
+
+  // Permissions Matrix
+  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
+  const [loadingMatrix, setLoadingMatrix] = useState(false);
+
+  const fetchMatrix = useCallback(async () => {
+    if (!resolvedOrgId) return;
+    setLoadingMatrix(true);
+    const data = await actions.loadRolePermissions(resolvedOrgId);
+    setRolePermissions(data);
+    setLoadingMatrix(false);
+  }, [resolvedOrgId]);
+
+  useEffect(() => {
+    if (tab === "matrix" && resolvedOrgId) {
+      fetchMatrix();
+    }
+  }, [tab, resolvedOrgId, fetchMatrix]);
 
   const canManage = currentUserRole === "Admin" || currentUserRole === "PM";
   const isAdmin = currentUserRole === "Admin";
@@ -203,6 +234,25 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
     }
   };
 
+  const handleToggleRolePermission = async (role: "Admin" | "PM" | "Staff", key: PermissionKey, currentEnabled: boolean) => {
+    const nextEnabled = !currentEnabled;
+    // Optimistic UI update
+    setRolePermissions((prev) => {
+      const idx = prev.findIndex((rp) => rp.role === role && rp.permissionKey === key);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], enabled: nextEnabled };
+        return copy;
+      }
+      return [...prev, { id: Math.random().toString(), orgId: resolvedOrgId, role, permissionKey: key, enabled: nextEnabled }];
+    });
+    const ok = await actions.saveRolePermission(resolvedOrgId, role, key, nextEnabled);
+    if (!ok) {
+      // Revert if failed
+      fetchMatrix();
+    }
+  };
+
   const filtered = members.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -213,6 +263,7 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
     { key: "directory", label: "Directory" },
     ...(canManage ? [{ key: "invite" as Tab, label: "Invite Member" }] : []),
     ...(selectedMember ? [{ key: "projects" as Tab, label: `${selectedMember.name}'s Projects` }] : []),
+    ...(canManage ? [{ key: "matrix" as Tab, label: "Permissions Matrix" }] : []),
     ...(isAdmin ? [{ key: "settings" as Tab, label: "Org Settings" }] : []),
   ];
 
@@ -591,6 +642,77 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
                       Assign
                     </button>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PERMISSIONS MATRIX TAB */}
+          {!initError && tab === "matrix" && canManage && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-muted/40 border border-border/60">
+                <Shield className="h-5 w-5 text-[var(--rk-navy)] dark:text-[var(--rk-gold)] shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-sm">Role-Based Permissions Matrix</h3>
+                  <p className="text-xs text-muted-foreground">Configure default capabilities for each role in your organization.</p>
+                </div>
+              </div>
+
+              {loadingMatrix ? (
+                <div className="flex items-center justify-center h-32 text-sm text-muted-foreground animate-pulse">
+                  Loading matrix…
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border overflow-hidden bg-background">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/50 text-muted-foreground font-semibold">
+                        <th className="py-3 px-4">Capability</th>
+                        <th className="py-3 px-3 text-center w-24">Admin</th>
+                        <th className="py-3 px-3 text-center w-24">PM</th>
+                        <th className="py-3 px-3 text-center w-24">Staff</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {PERMISSION_LABELS.map((item) => {
+                        const adminEnabled = rolePermissions.find((r) => r.role === "Admin" && r.permissionKey === item.key)?.enabled ?? true;
+                        const pmEnabled = rolePermissions.find((r) => r.role === "PM" && r.permissionKey === item.key)?.enabled ?? (item.key !== "projects:delete");
+                        const staffEnabled = rolePermissions.find((r) => r.role === "Staff" && r.permissionKey === item.key)?.enabled ?? (item.key === "tasks:create" || item.key === "comments:create");
+
+                        return (
+                          <tr key={item.key} className="hover:bg-muted/20 transition-colors">
+                            <td className="py-3 px-4">
+                              <div className="font-semibold text-foreground">{item.label}</div>
+                              <div className="text-[11px] text-muted-foreground">{item.description}</div>
+                            </td>
+                            {(["Admin", "PM", "Staff"] as const).map((role) => {
+                              const isEnabled = role === "Admin" ? adminEnabled : role === "PM" ? pmEnabled : staffEnabled;
+                              return (
+                                <td key={role} className="py-3 px-3 text-center">
+                                  <button
+                                    onClick={() => handleToggleRolePermission(role, item.key, isEnabled)}
+                                    disabled={!isAdmin && role === "Admin"}
+                                    className={`inline-flex items-center justify-center h-6 w-11 rounded-full transition-colors ${
+                                      isEnabled
+                                        ? "bg-emerald-500 text-white"
+                                        : "bg-muted text-muted-foreground shadow-inner"
+                                    } disabled:opacity-50`}
+                                    title={`Toggle ${item.label} for ${role}`}
+                                  >
+                                    <span
+                                      className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                                        isEnabled ? "translate-x-2" : "-translate-x-2"
+                                      }`}
+                                    />
+                                  </button>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>

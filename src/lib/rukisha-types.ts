@@ -16,6 +16,35 @@ export interface OrgMember {
   projects?: { projectId: string; projectName: string; role: string }[];
 }
 
+export type PermissionKey =
+  | "projects:create"
+  | "projects:delete"
+  | "projects:edit_setup"
+  | "tasks:create"
+  | "tasks:edit_all"
+  | "tasks:delete"
+  | "comments:create"
+  | "comments:delete"
+  | "members:manage"
+  | "vault:manage";
+
+export interface RolePermission {
+  id: string;
+  orgId: string;
+  role: "Admin" | "PM" | "Staff";
+  permissionKey: PermissionKey;
+  enabled: boolean;
+}
+
+export interface UserPermissionOverride {
+  id: string;
+  orgId: string;
+  userEmail: string;
+  permissionKey: PermissionKey;
+  granted: boolean;
+}
+
+
 export interface SubTask {
   id: string;
   taskId: string;

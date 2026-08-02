@@ -46,6 +46,8 @@ const TABLE_WHITELIST = [
   "rk_task_attachments",
   "rk_organizations",
   "rk_org_members",
+  "rk_role_permissions",
+  "rk_user_permissions",
 ];
 
 // Helper to sanitize identifiers (column and table names) to prevent SQL injection

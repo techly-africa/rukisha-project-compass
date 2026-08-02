@@ -1072,6 +1072,97 @@ export const actions = {
     toast.success("Organization details updated.");
     return true;
   },
+
+  // ─────────────────────────────────────────────
+  //  Permissions Matrix Actions
+  // ─────────────────────────────────────────────
+
+  /** Load role permissions for an org */
+  async loadRolePermissions(orgId: string) {
+    const { data, error } = await (supabase as any)
+      .from("rk_role_permissions")
+      .select("*")
+      .eq("org_id", orgId);
+    if (error) return [];
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      orgId: r.org_id,
+      role: r.role,
+      permissionKey: r.permission_key,
+      enabled: r.enabled,
+    }));
+  },
+
+  /** Save a role permission toggle */
+  async saveRolePermission(orgId: string, role: string, permissionKey: string, enabled: boolean) {
+    const { error } = await (supabase as any)
+      .from("rk_role_permissions")
+      .upsert(
+        { org_id: orgId, role, permission_key: permissionKey, enabled },
+        { onConflict: "org_id,role,permission_key" },
+      );
+    if (error) {
+      toast.error("Failed to update role permission.");
+      return false;
+    }
+    toast.success(`Permission updated for ${role}.`);
+    return true;
+  },
+
+  /** Load custom user permission overrides for an email in an org */
+  async loadUserPermissions(orgId: string, email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const { data, error } = await (supabase as any)
+      .from("rk_user_permissions")
+      .select("*")
+      .eq("org_id", orgId)
+      .eq("user_email", cleanEmail);
+    if (error) return [];
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      orgId: r.org_id,
+      userEmail: r.user_email,
+      permissionKey: r.permission_key,
+      granted: r.granted,
+    }));
+  },
+
+  /** Save or clear a user permission override */
+  async saveUserPermissionOverride(
+    orgId: string,
+    email: string,
+    permissionKey: string,
+    granted: boolean | null,
+  ) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (granted === null) {
+      const { error } = await (supabase as any)
+        .from("rk_user_permissions")
+        .delete()
+        .eq("org_id", orgId)
+        .eq("user_email", cleanEmail)
+        .eq("permission_key", permissionKey);
+      if (error) {
+        toast.error("Failed to reset user permission override.");
+        return false;
+      }
+      toast.success("Permission override reset to role default.");
+      return true;
+    }
+
+    const { error } = await (supabase as any)
+      .from("rk_user_permissions")
+      .upsert(
+        { org_id: orgId, user_email: cleanEmail, permission_key: permissionKey, granted },
+        { onConflict: "org_id,user_email,permission_key" },
+      );
+    if (error) {
+      toast.error("Failed to save user permission override.");
+      return false;
+    }
+    toast.success("User permission override saved.");
+    return true;
+  },
 };
 
 

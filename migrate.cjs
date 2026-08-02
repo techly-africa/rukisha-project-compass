@@ -211,8 +211,66 @@ async function run() {
 
       UPDATE public.rk_org_members SET role = org_role WHERE role IS NULL;
       UPDATE public.rk_org_members SET org_role = role WHERE org_role IS NULL;
+
+      -- Permissions Matrix Tables
+      CREATE TABLE IF NOT EXISTS public.rk_role_permissions (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id uuid NOT NULL REFERENCES public.rk_organizations(id) ON DELETE CASCADE,
+        role text NOT NULL,
+        permission_key text NOT NULL,
+        enabled boolean DEFAULT true NOT NULL,
+        created_at timestamp with time zone DEFAULT now() NOT NULL,
+        CONSTRAINT rk_role_permissions_unique UNIQUE (org_id, role, permission_key)
+      );
+
+      CREATE TABLE IF NOT EXISTS public.rk_user_permissions (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id uuid NOT NULL REFERENCES public.rk_organizations(id) ON DELETE CASCADE,
+        user_email text NOT NULL,
+        permission_key text NOT NULL,
+        granted boolean NOT NULL,
+        created_at timestamp with time zone DEFAULT now() NOT NULL,
+        CONSTRAINT rk_user_permissions_unique UNIQUE (org_id, user_email, permission_key)
+      );
+
+      -- Seed default permissions for roles
+      INSERT INTO public.rk_role_permissions (org_id, role, permission_key, enabled)
+      VALUES
+        ('00000000-0000-0000-0000-000000000001', 'Admin', 'projects:create', true),
+        ('00000000-0000-0000-0000-000000000001', 'Admin', 'projects:delete', true),
+        ('00000000-0000-0000-0000-000000000001', 'Admin', 'projects:edit_setup', true),
+        ('00000000-0000-0000-0000-000000000001', 'Admin', 'tasks:create', true),
+        ('00000000-0000-0000-0000-000000000001', 'Admin', 'tasks:edit_all', true),
+        ('00000000-0000-0000-0000-000000000001', 'Admin', 'tasks:delete', true),
+        ('00000000-0000-0000-0000-000000000001', 'Admin', 'comments:create', true),
+        ('00000000-0000-0000-0000-000000000001', 'Admin', 'comments:delete', true),
+        ('00000000-0000-0000-0000-000000000001', 'Admin', 'members:manage', true),
+        ('00000000-0000-0000-0000-000000000001', 'Admin', 'vault:manage', true),
+
+        ('00000000-0000-0000-0000-000000000001', 'PM', 'projects:create', true),
+        ('00000000-0000-0000-0000-000000000001', 'PM', 'projects:delete', false),
+        ('00000000-0000-0000-0000-000000000001', 'PM', 'projects:edit_setup', true),
+        ('00000000-0000-0000-0000-000000000001', 'PM', 'tasks:create', true),
+        ('00000000-0000-0000-0000-000000000001', 'PM', 'tasks:edit_all', true),
+        ('00000000-0000-0000-0000-000000000001', 'PM', 'tasks:delete', true),
+        ('00000000-0000-0000-0000-000000000001', 'PM', 'comments:create', true),
+        ('00000000-0000-0000-0000-000000000001', 'PM', 'comments:delete', true),
+        ('00000000-0000-0000-0000-000000000001', 'PM', 'members:manage', true),
+        ('00000000-0000-0000-0000-000000000001', 'PM', 'vault:manage', true),
+
+        ('00000000-0000-0000-0000-000000000001', 'Staff', 'projects:create', false),
+        ('00000000-0000-0000-0000-000000000001', 'Staff', 'projects:delete', false),
+        ('00000000-0000-0000-0000-000000000001', 'Staff', 'projects:edit_setup', false),
+        ('00000000-0000-0000-0000-000000000001', 'Staff', 'tasks:create', true),
+        ('00000000-0000-0000-0000-000000000001', 'Staff', 'tasks:edit_all', false),
+        ('00000000-0000-0000-0000-000000000001', 'Staff', 'tasks:delete', false),
+        ('00000000-0000-0000-0000-000000000001', 'Staff', 'comments:create', true),
+        ('00000000-0000-0000-0000-000000000001', 'Staff', 'comments:delete', false),
+        ('00000000-0000-0000-0000-000000000001', 'Staff', 'members:manage', false),
+        ('00000000-0000-0000-0000-000000000001', 'Staff', 'vault:manage', false)
+      ON CONFLICT (org_id, role, permission_key) DO NOTHING;
     `);
-    console.log("Organization and org members tables ready.");
+    console.log("Organization, org members, and permissions tables ready.");
   } catch (err) {
     console.error("Failed to create organization tables:", err.message);
   }
