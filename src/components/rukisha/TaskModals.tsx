@@ -290,7 +290,7 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
   const totalCount = task.subTasks?.length || 0;
   const currentDependencies = task.dependencies || [];
   const availableTasks = state.tasks.filter(
-    (t) => t.id !== task.id && !currentDependencies.includes(t.id),
+    (t) => t.id !== task.id && !currentDependencies.includes(t.id) && t.percentComplete < 100,
   );
 
   const status = getTaskStatus(task);

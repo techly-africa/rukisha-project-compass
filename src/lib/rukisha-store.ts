@@ -681,6 +681,12 @@ export const actions = {
     }));
   },
   async addDependency(taskId: string, dependsOnTaskId: string) {
+    const targetTask = state.tasks.find((t) => t.id === dependsOnTaskId);
+    if (targetTask && targetTask.percentComplete >= 100) {
+      toast.error("Completed tasks cannot be added as dependencies.");
+      return;
+    }
+
     const { data, error } = await supabase
       .from("rk_task_dependencies")
       .insert({ task_id: taskId, depends_on_task_id: dependsOnTaskId })

@@ -504,7 +504,7 @@ function DependencyOverlay({
     const deps = task.dependencies ?? [];
     deps.forEach((depId) => {
       const fromTask = tasks.find((t) => t.id === depId) ?? allTasks.find((t) => t.id === depId);
-      if (!fromTask) return;
+      if (!fromTask || fromTask.percentComplete >= 100) return;
       const fromIdx = tasks.indexOf(fromTask);
       if (fromIdx < 0) return;
 
