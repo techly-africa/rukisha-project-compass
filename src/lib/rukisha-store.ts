@@ -857,7 +857,164 @@ export const actions = {
   importState(_next: ProjectState) {
     console.warn("importState is disabled when synced to Cloud.");
   },
+
+  // ─────────────────────────────────────────────
+  //  Organization Member Actions
+  // ─────────────────────────────────────────────
+
+  /** Fetch all org members for a given orgId */
+  async loadOrgMembers(orgId: string) {
+    const { data, error } = await (supabase as any)
+      .from("rk_org_members")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: true });
+    if (error) {
+      toast.error("Failed to load organization members");
+      return [];
+    }
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      orgId: r.org_id,
+      email: r.email,
+      name: r.name || r.email,
+      orgRole: r.role,
+      createdAt: r.created_at,
+    }));
+  },
+
+  /** Invite (add) a member to the organization */
+  async inviteOrgMember(orgId: string, email: string, name: string, role: "Admin" | "PM" | "Staff") {
+    const cleanEmail = email.trim().toLowerCase();
+    // idempotent: check if already exists
+    const { data: existing } = await (supabase as any)
+      .from("rk_org_members")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("email", cleanEmail)
+      .maybeSingle();
+    if (existing) {
+      toast.error("This user is already a member of the organization.");
+      return null;
+    }
+    const { data, error } = await (supabase as any)
+      .from("rk_org_members")
+      .insert({ org_id: orgId, email: cleanEmail, name: name || cleanEmail, role })
+      .select()
+      .single();
+    if (error) {
+      toast.error("Failed to add member: " + error.message);
+      return null;
+    }
+    toast.success(`${name || cleanEmail} added to organization.`);
+    return { id: data.id, orgId: data.org_id, email: data.email, name: data.name, orgRole: data.role, createdAt: data.created_at };
+  },
+
+  /** Update an org member's name or role */
+  async updateOrgMember(memberId: string, updates: { name?: string; role?: "Admin" | "PM" | "Staff" }) {
+    const { error } = await (supabase as any)
+      .from("rk_org_members")
+      .update(updates)
+      .eq("id", memberId);
+    if (error) {
+      toast.error("Failed to update member.");
+      return false;
+    }
+    toast.success("Member updated.");
+    return true;
+  },
+
+  /** Remove a member from the organization */
+  async removeOrgMember(memberId: string) {
+    const { error } = await (supabase as any)
+      .from("rk_org_members")
+      .delete()
+      .eq("id", memberId);
+    if (error) {
+      toast.error("Failed to remove member.");
+      return false;
+    }
+    toast.success("Member removed from organization.");
+    return true;
+  },
+
+  /** Assign an org member to a project (adds to rk_team) */
+  async assignMemberToProject(
+    projectIdTarget: string,
+    email: string,
+    name: string,
+    role: "Admin" | "PM" | "Staff",
+  ) {
+    const cleanEmail = email.trim().toLowerCase();
+    const { data: existing } = await (supabase as any)
+      .from("rk_team")
+      .select("id")
+      .eq("project_id", projectIdTarget)
+      .eq("email", cleanEmail)
+      .maybeSingle();
+    if (existing) {
+      toast.error("User is already on this project.");
+      return false;
+    }
+    const { error } = await (supabase as any)
+      .from("rk_team")
+      .insert({ project_id: projectIdTarget, email: cleanEmail, name: name || cleanEmail, role });
+    if (error) {
+      toast.error("Failed to assign member to project: " + error.message);
+      return false;
+    }
+    toast.success(`${name || cleanEmail} added to project.`);
+    return true;
+  },
+
+  /** Remove an org member from a project (removes from rk_team) */
+  async removeMemberFromProject(projectIdTarget: string, email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const { error } = await (supabase as any)
+      .from("rk_team")
+      .delete()
+      .eq("project_id", projectIdTarget)
+      .eq("email", cleanEmail);
+    if (error) {
+      toast.error("Failed to remove member from project.");
+      return false;
+    }
+    toast.success("Member removed from project.");
+    return true;
+  },
+
+  /** Fetch all projects an org member is assigned to */
+  async getMemberProjects(email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const { data, error } = await (supabase as any)
+      .from("rk_team")
+      .select("project_id, role, rk_project:project_id(name)")
+      .eq("email", cleanEmail);
+    if (error) return [];
+    return (data ?? []).map((r: any) => ({
+      projectId: r.project_id,
+      role: r.role,
+      projectName: r.rk_project?.name ?? r.project_id,
+    }));
+  },
+
+  /** Fetch all org memberships the current user is in */
+  async getUserOrgs(): Promise<{ id: string; name: string; role: string }[]> {
+    const email = localStorage.getItem("rk-email")?.trim().toLowerCase();
+    if (!email) return [];
+    const { data, error } = await (supabase as any)
+      .from("rk_org_members")
+      .select("org_id, role, rk_organizations:org_id(id, name)")
+      .eq("email", email);
+    if (error) return [];
+    return (data ?? []).map((r: any) => ({
+      id: r.org_id,
+      name: r.rk_organizations?.name ?? r.org_id,
+      role: r.role,
+    }));
+  },
 };
+
 
 /** Call after login to force a fresh project fetch with the saved email. */
 export function initializeStore() {

@@ -44,6 +44,8 @@ const TABLE_WHITELIST = [
   "rk_documents",
   "rk_task_comments",
   "rk_task_attachments",
+  "rk_organizations",
+  "rk_org_members",
 ];
 
 // Helper to sanitize identifiers (column and table names) to prevent SQL injection
@@ -54,7 +56,7 @@ function sanitizeIdentifier(name) {
   return `"${name}"`;
 }
 
-// Helper to lookup a user's role on a project
+// Helper to lookup a user's role on a project or globally
 async function getUserRole(email, projectId) {
   if (!email) return null;
   const cleanEmail = email.trim().toLowerCase();
@@ -68,17 +70,28 @@ async function getUserRole(email, projectId) {
     return "Admin";
   }
 
-  if (!projectId) return null;
+  // 2. Check team membership for the project if projectId provided
+  if (projectId) {
+    const teamRes = await pool.query(
+      "SELECT role FROM rk_team WHERE project_id = $1 AND lower(trim(email)) = $2",
+      [projectId, cleanEmail],
+    );
+    if (teamRes.rows.length > 0) {
+      const r = teamRes.rows[0].role;
+      if (!r || r === "Member") return "Staff";
+      return r;
+    }
+  }
 
-  // 2. Check team membership for the project
-  const teamRes = await pool.query(
-    "SELECT role FROM rk_team WHERE project_id = $1 AND lower(trim(email)) = $2",
-    [projectId, cleanEmail],
+  // 3. Check organization membership for global role
+  const orgRes = await pool.query(
+    "SELECT org_role FROM rk_org_members WHERE lower(trim(email)) = $1",
+    [cleanEmail],
   );
-  if (teamRes.rows.length > 0) {
-    const r = teamRes.rows[0].role;
-    if (!r || r === "Member") return "Staff";
-    return r;
+  if (orgRes.rows.length > 0) {
+    const gr = orgRes.rows[0].org_role;
+    if (gr === "Admin" || gr === "PM") return gr;
+    return "Staff";
   }
 
   return null;

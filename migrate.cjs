@@ -156,6 +156,58 @@ async function run() {
     console.error("Failed to create task comments/attachments tables:", err.message);
   }
 
+  // Create Organizations and Org Members tables & backfill
+  try {
+    console.log("Ensuring organization and org members tables...");
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public.rk_organizations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        name text NOT NULL DEFAULT 'Rukisha Africa',
+        created_at timestamp with time zone DEFAULT now() NOT NULL
+      );
+
+      INSERT INTO public.rk_organizations (id, name)
+      VALUES ('00000000-0000-0000-0000-000000000001', 'Rukisha Africa')
+      ON CONFLICT (id) DO NOTHING;
+
+      ALTER TABLE public.rk_project ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES public.rk_organizations(id);
+      UPDATE public.rk_project SET org_id = '00000000-0000-0000-0000-000000000001' WHERE org_id IS NULL;
+
+      CREATE TABLE IF NOT EXISTS public.rk_org_members (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id uuid NOT NULL REFERENCES public.rk_organizations(id) ON DELETE CASCADE,
+        email text NOT NULL,
+        name text NOT NULL,
+        org_role text DEFAULT 'Staff' NOT NULL,
+        created_at timestamp with time zone DEFAULT now() NOT NULL,
+        CONSTRAINT rk_org_members_unique UNIQUE (org_id, email)
+      );
+
+      -- Backfill org members from existing team members & superadmins
+      INSERT INTO public.rk_org_members (org_id, email, name, org_role)
+      SELECT DISTINCT 
+        '00000000-0000-0000-0000-000000000001'::uuid,
+        lower(trim(email)),
+        COALESCE(nullif(trim(name), ''), split_part(trim(email), '@', 1)),
+        CASE WHEN role IN ('Admin', 'PM') THEN role ELSE 'Staff' END
+      FROM public.rk_team
+      ON CONFLICT (org_id, email) DO UPDATE 
+      SET org_role = EXCLUDED.org_role WHERE public.rk_org_members.org_role = 'Staff';
+
+      INSERT INTO public.rk_org_members (org_id, email, name, org_role)
+      SELECT DISTINCT 
+        '00000000-0000-0000-0000-000000000001'::uuid,
+        lower(trim(email)),
+        split_part(trim(email), '@', 1),
+        'Admin'
+      FROM public.rk_superadmins
+      ON CONFLICT (org_id, email) DO UPDATE SET org_role = 'Admin';
+    `);
+    console.log("Organization and org members tables ready.");
+  } catch (err) {
+    console.error("Failed to create organization tables:", err.message);
+  }
+
   // Migrate existing team roles from Member to Staff
   try {
     console.log("Migrating team roles from 'Member' to 'Staff'...");

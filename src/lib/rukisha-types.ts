@@ -6,6 +6,16 @@ export interface TeamMember {
   name: string;
 }
 
+export interface OrgMember {
+  id: string;
+  orgId: string;
+  email: string;
+  name: string;
+  orgRole: "Admin" | "PM" | "Staff";
+  createdAt: string;
+  projects?: { projectId: string; projectName: string; role: string }[];
+}
+
 export interface SubTask {
   id: string;
   taskId: string;

@@ -1,8 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Compass, LogOut } from "lucide-react";
+import { Compass, LogOut, Users } from "lucide-react";
 import { actions, useHydratedProject, useIsLoaded, useProject } from "@/lib/rukisha-store";
 import { toast } from "sonner";
+import { OrgUserManagementModal } from "./OrgUserManagementModal";
 
 function Icon({ d, className }: { d: string; className?: string }) {
   return (
@@ -30,6 +31,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [localName, setLocalName] = useState(state.projectName);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Organization context for member management
+  const [orgCtx, setOrgCtx] = useState<{ id: string; name: string; role: "Admin" | "PM" | "Staff" } | null>(null);
+  const [showOrgModal, setShowOrgModal] = useState(false);
+
   // Keep local name in sync when store loads a new project
   useEffect(() => {
     setLocalName(state.projectName);
@@ -37,6 +42,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    // Resolve the logged-in user's org on mount
+    actions.getUserOrgs().then((orgs) => {
+      if (orgs.length > 0) {
+        const o = orgs[0];
+        setOrgCtx({ id: o.id, name: o.name, role: o.role as any });
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -163,6 +175,23 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+            {/* Organization Members – only shown when user has an org */}
+            {orgCtx && (orgCtx.role === "Admin" || orgCtx.role === "PM") && (
+              <button
+                onClick={() => setShowOrgModal(true)}
+                title={isCollapsed ? "Organization Members" : undefined}
+                className={`flex items-center rounded-md transition-all duration-200 text-muted-foreground hover:bg-muted hover:text-foreground ${
+                  isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-2 text-sm"
+                }`}
+              >
+                <Users className={isCollapsed ? "h-6 w-6" : "h-5 w-5"} />
+                {!isCollapsed && (
+                  <span className="animate-in fade-in slide-in-from-left-1 duration-300">
+                    Organization Members
+                  </span>
+                )}
+              </button>
+            )}
           </nav>
         </div>
 
@@ -329,6 +358,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
         </main>
       </div>
+
+      {/* Org Member Management Modal */}
+      {showOrgModal && orgCtx && (
+        <OrgUserManagementModal
+          orgId={orgCtx.id}
+          orgName={orgCtx.name}
+          currentUserRole={orgCtx.role}
+          onClose={() => setShowOrgModal(false)}
+        />
+      )}
     </div>
   );
 }
