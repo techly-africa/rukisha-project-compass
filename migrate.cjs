@@ -179,29 +179,38 @@ async function run() {
         email text NOT NULL,
         name text NOT NULL,
         org_role text DEFAULT 'Staff' NOT NULL,
+        role text DEFAULT 'Staff' NOT NULL,
         created_at timestamp with time zone DEFAULT now() NOT NULL,
         CONSTRAINT rk_org_members_unique UNIQUE (org_id, email)
       );
 
+      ALTER TABLE public.rk_org_members ADD COLUMN IF NOT EXISTS role text DEFAULT 'Staff';
+      ALTER TABLE public.rk_org_members ADD COLUMN IF NOT EXISTS org_role text DEFAULT 'Staff';
+
       -- Backfill org members from existing team members & superadmins
-      INSERT INTO public.rk_org_members (org_id, email, name, org_role)
+      INSERT INTO public.rk_org_members (org_id, email, name, org_role, role)
       SELECT DISTINCT 
         '00000000-0000-0000-0000-000000000001'::uuid,
         lower(trim(email)),
         COALESCE(nullif(trim(name), ''), split_part(trim(email), '@', 1)),
+        CASE WHEN role IN ('Admin', 'PM') THEN role ELSE 'Staff' END,
         CASE WHEN role IN ('Admin', 'PM') THEN role ELSE 'Staff' END
       FROM public.rk_team
       ON CONFLICT (org_id, email) DO UPDATE 
-      SET org_role = EXCLUDED.org_role WHERE public.rk_org_members.org_role = 'Staff';
+      SET org_role = EXCLUDED.org_role, role = EXCLUDED.role WHERE public.rk_org_members.org_role = 'Staff' OR public.rk_org_members.role = 'Staff';
 
-      INSERT INTO public.rk_org_members (org_id, email, name, org_role)
+      INSERT INTO public.rk_org_members (org_id, email, name, org_role, role)
       SELECT DISTINCT 
         '00000000-0000-0000-0000-000000000001'::uuid,
         lower(trim(email)),
         split_part(trim(email), '@', 1),
+        'Admin',
         'Admin'
       FROM public.rk_superadmins
-      ON CONFLICT (org_id, email) DO UPDATE SET org_role = 'Admin';
+      ON CONFLICT (org_id, email) DO UPDATE SET org_role = 'Admin', role = 'Admin';
+
+      UPDATE public.rk_org_members SET role = org_role WHERE role IS NULL;
+      UPDATE public.rk_org_members SET org_role = role WHERE org_role IS NULL;
     `);
     console.log("Organization and org members tables ready.");
   } catch (err) {

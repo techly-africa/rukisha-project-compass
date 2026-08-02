@@ -207,11 +207,13 @@ export function SetupPage() {
           .maybeSingle();
 
         if (!existingOrgMember) {
+          const assignedRole = m.role && m.role !== "Member" ? m.role : "Staff";
           await (supabase as any).from("rk_org_members").insert({
             org_id: orgId,
             email: cleanEmail,
             name: m.name.trim() || cleanEmail.split("@")[0],
-            role: m.role && m.role !== "Member" ? m.role : "Staff",
+            role: assignedRole,
+            org_role: assignedRole,
           });
         }
       }

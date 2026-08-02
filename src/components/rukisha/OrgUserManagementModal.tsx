@@ -96,7 +96,7 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
         if (email) {
           await (supabase as any)
             .from("rk_org_members")
-            .insert({ org_id: newOrg.id, email, name: email, role: "Admin" });
+            .insert({ org_id: newOrg.id, email, name: email, role: "Admin", org_role: "Admin" });
         }
       }
       setLoading(false);

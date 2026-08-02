@@ -878,7 +878,7 @@ export const actions = {
       orgId: r.org_id,
       email: r.email,
       name: r.name || r.email,
-      orgRole: r.role,
+      orgRole: r.org_role || r.role || "Staff",
       createdAt: r.created_at,
     }));
   },
@@ -899,7 +899,7 @@ export const actions = {
     }
     const { data, error } = await (supabase as any)
       .from("rk_org_members")
-      .insert({ org_id: orgId, email: cleanEmail, name: name || cleanEmail, role })
+      .insert({ org_id: orgId, email: cleanEmail, name: name || cleanEmail, role, org_role: role })
       .select()
       .single();
     if (error) {
@@ -907,14 +907,27 @@ export const actions = {
       return null;
     }
     toast.success(`${name || cleanEmail} added to organization.`);
-    return { id: data.id, orgId: data.org_id, email: data.email, name: data.name, orgRole: data.role, createdAt: data.created_at };
+    return {
+      id: data.id,
+      orgId: data.org_id,
+      email: data.email,
+      name: data.name,
+      orgRole: data.org_role || data.role || role,
+      createdAt: data.created_at,
+    };
   },
 
   /** Update an org member's name or role */
   async updateOrgMember(memberId: string, updates: { name?: string; role?: "Admin" | "PM" | "Staff" }) {
+    const payload: any = {};
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.role !== undefined) {
+      payload.role = updates.role;
+      payload.org_role = updates.role;
+    }
     const { error } = await (supabase as any)
       .from("rk_org_members")
-      .update(updates)
+      .update(payload)
       .eq("id", memberId);
     if (error) {
       toast.error("Failed to update member.");
@@ -966,13 +979,15 @@ export const actions = {
 
     if (!orgMember) {
       // Auto-register user in organization if not already a member
+      const assignedRole = role === "Admin" ? "Admin" : role === "PM" ? "PM" : "Staff";
       await (supabase as any)
         .from("rk_org_members")
         .insert({
           org_id: targetOrgId,
           email: cleanEmail,
           name: name || cleanEmail.split("@")[0],
-          role: role === "Admin" ? "Admin" : role === "PM" ? "PM" : "Staff",
+          role: assignedRole,
+          org_role: assignedRole,
         });
     }
 
@@ -1034,13 +1049,13 @@ export const actions = {
     if (!email) return [];
     const { data, error } = await (supabase as any)
       .from("rk_org_members")
-      .select("org_id, role, rk_organizations:org_id(id, name)")
+      .select("org_id, role, org_role, rk_organizations:org_id(id, name)")
       .eq("email", email);
     if (error) return [];
     return (data ?? []).map((r: any) => ({
       id: r.org_id,
       name: r.rk_organizations?.name ?? r.org_id,
-      role: r.role,
+      role: r.org_role || r.role || "Staff",
     }));
   },
 
