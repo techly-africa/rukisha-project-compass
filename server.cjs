@@ -57,11 +57,13 @@ function sanitizeIdentifier(name) {
 // Helper to lookup a user's role on a project
 async function getUserRole(email, projectId) {
   if (!email) return null;
+  const cleanEmail = email.trim().toLowerCase();
 
   // 1. Check if user is a super admin
-  const adminRes = await pool.query("SELECT 1 FROM rk_superadmins WHERE lower(email) = lower($1)", [
-    email,
-  ]);
+  const adminRes = await pool.query(
+    "SELECT 1 FROM rk_superadmins WHERE lower(trim(email)) = $1",
+    [cleanEmail],
+  );
   if (adminRes.rows.length > 0) {
     return "Admin";
   }
@@ -70,8 +72,8 @@ async function getUserRole(email, projectId) {
 
   // 2. Check team membership for the project
   const teamRes = await pool.query(
-    "SELECT role FROM rk_team WHERE project_id = $1 AND lower(email) = lower($2)",
-    [projectId, email],
+    "SELECT role FROM rk_team WHERE project_id = $1 AND lower(trim(email)) = $2",
+    [projectId, cleanEmail],
   );
   if (teamRes.rows.length > 0) {
     const r = teamRes.rows[0].role;
@@ -102,12 +104,15 @@ async function extractProjectId(reqBody) {
     if (pFilter && pFilter.op === "eq") return pFilter.value;
 
     const taskFilter = filters.find((f) => f.field === "task_id");
-    if (taskFilter && taskFilter.op === "eq") {
-      try {
-        const res = await pool.query(`SELECT project_id FROM rk_tasks WHERE id = $1`, [taskFilter.value]);
-        if (res.rows[0]?.project_id) return res.rows[0].project_id;
-      } catch (err) {
-        console.error("Error extracting project_id from task_id filter:", err.message);
+    if (taskFilter) {
+      const taskIdVal = Array.isArray(taskFilter.value) ? taskFilter.value[0] : taskFilter.value;
+      if (taskIdVal) {
+        try {
+          const res = await pool.query(`SELECT project_id FROM rk_tasks WHERE id = $1`, [taskIdVal]);
+          if (res.rows[0]?.project_id) return res.rows[0].project_id;
+        } catch (err) {
+          console.error("Error extracting project_id from task_id filter:", err.message);
+        }
       }
     }
   }
