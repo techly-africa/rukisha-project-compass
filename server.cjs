@@ -74,7 +74,9 @@ async function getUserRole(email, projectId) {
     [projectId, email],
   );
   if (teamRes.rows.length > 0) {
-    return teamRes.rows[0].role || "Staff"; // Default to Staff if empty
+    const r = teamRes.rows[0].role;
+    if (!r || r === "Member") return "Staff";
+    return r;
   }
 
   return null;

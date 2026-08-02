@@ -308,7 +308,10 @@ async function loadAll(id?: string) {
       darkMode: localDark,
       userProjects: projectList,
       userEmail,
-      userRole: (teamMember as any)?.role || "Staff",
+      userRole:
+        !(teamMember as any)?.role || (teamMember as any)?.role === "Member"
+          ? "Staff"
+          : (teamMember as any).role,
       isSuperAdmin,
     };
 

@@ -159,7 +159,7 @@ async function run() {
   // Migrate existing team roles from Member to Staff
   try {
     console.log("Migrating team roles from 'Member' to 'Staff'...");
-    await client.query("UPDATE public.rk_team SET role = 'Staff' WHERE role = 'Member';");
+    await client.query("UPDATE public.rk_team SET role = 'Staff' WHERE role = 'Member' OR role IS NULL OR role = '';");
     console.log("Team roles updated.");
   } catch (err) {
     console.error("Failed to migrate team roles:", err.message);

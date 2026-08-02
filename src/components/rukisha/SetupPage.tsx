@@ -178,6 +178,15 @@ export function SetupPage() {
           .eq("id", pid);
       }
 
+      const userEmail = (localStorage.getItem("rk-email") || "").toLowerCase().trim();
+      if (userEmail && !validTeam.some((m) => m.email.toLowerCase() === userEmail)) {
+        validTeam.unshift({
+          email: userEmail,
+          name: userEmail.split("@")[0],
+          role: "PM",
+        });
+      }
+
       // Replace team and stakeholders
       await Promise.all([
         supabase.from("rk_team").delete().eq("project_id", pid),
@@ -189,8 +198,8 @@ export function SetupPage() {
           validTeam.map((m) => ({
             project_id: pid!,
             email: m.email.trim().toLowerCase(),
-            name: m.name.trim(),
-            role: m.role || "Member",
+            name: m.name.trim() || m.email.trim().split("@")[0],
+            role: m.role && m.role !== "Member" ? m.role : "Staff",
           })),
         ),
         supabase.from("rk_stakeholders").insert(
