@@ -42,6 +42,8 @@ const TABLE_WHITELIST = [
   "rk_task_dependencies",
   "rk_team",
   "rk_documents",
+  "rk_task_comments",
+  "rk_task_attachments",
 ];
 
 // Helper to sanitize identifiers (column and table names) to prevent SQL injection
@@ -79,15 +81,33 @@ async function getUserRole(email, projectId) {
 }
 
 // Extract project ID from request body where possible
-function extractProjectId(reqBody) {
+async function extractProjectId(reqBody) {
   const { table, rpc, data, filters } = reqBody;
   if (rpc === "vault_document" && data) return data.p_project_id;
   if (data && data.project_id) return data.project_id;
+  if (data && data.task_id) {
+    try {
+      const res = await pool.query(`SELECT project_id FROM rk_tasks WHERE id = $1`, [data.task_id]);
+      if (res.rows[0]?.project_id) return res.rows[0].project_id;
+    } catch (err) {
+      console.error("Error extracting project_id from task_id:", err.message);
+    }
+  }
   if (filters) {
     const pFilter = filters.find(
       (f) => f.field === "project_id" || (f.field === "id" && table === "rk_project"),
     );
     if (pFilter && pFilter.op === "eq") return pFilter.value;
+
+    const taskFilter = filters.find((f) => f.field === "task_id");
+    if (taskFilter && taskFilter.op === "eq") {
+      try {
+        const res = await pool.query(`SELECT project_id FROM rk_tasks WHERE id = $1`, [taskFilter.value]);
+        if (res.rows[0]?.project_id) return res.rows[0].project_id;
+      } catch (err) {
+        console.error("Error extracting project_id from task_id filter:", err.message);
+      }
+    }
   }
   return null;
 }
@@ -121,6 +141,20 @@ async function lookupProjectId(table, id) {
       );
       return res.rows[0]?.project_id || null;
     }
+    if (table === "rk_task_comments") {
+      const res = await pool.query(
+        `SELECT t.project_id FROM rk_task_comments c JOIN rk_tasks t ON t.id = c.task_id WHERE c.id = $1`,
+        [id],
+      );
+      return res.rows[0]?.project_id || null;
+    }
+    if (table === "rk_task_attachments") {
+      const res = await pool.query(
+        `SELECT t.project_id FROM rk_task_attachments a JOIN rk_tasks t ON t.id = a.task_id WHERE a.id = $1`,
+        [id],
+      );
+      return res.rows[0]?.project_id || null;
+    }
   } catch (err) {
     console.error("Error looking up project ID from DB:", err);
   }
@@ -144,7 +178,7 @@ app.post("/api/db", async (req, res) => {
 
   try {
     // Determine Project ID for RLS/RBAC checks
-    let projectId = extractProjectId(req.body);
+    let projectId = await extractProjectId(req.body);
     if (!projectId && filters) {
       const idFilter = filters.find((f) => f.field === "id");
       if (idFilter && idFilter.op === "eq") {
@@ -186,13 +220,16 @@ app.post("/api/db", async (req, res) => {
           allowed = true;
         }
       } else if (role === "Staff") {
-        // Staff can only:
+        // Staff can:
         // - Toggle checklist items (update rk_subtasks)
         // - Update task progress (update rk_tasks, but only percent_complete, actual_start, actual_duration)
+        // - Post/delete comments and attachments (rk_task_comments, rk_task_attachments)
         if (table === "rk_subtasks" && action === "update") {
           allowed = true;
+        } else if (table === "rk_task_comments" || table === "rk_task_attachments") {
+          allowed = true;
         } else if (table === "rk_tasks" && action === "update") {
-          const keys = Object.keys(data);
+          const keys = Object.keys(data || {});
           const allowedStaffColumns = ["percent_complete", "actual_start", "actual_duration"];
           const changingForbidden = keys.some((k) => !allowedStaffColumns.includes(k));
           allowed = !changingForbidden;
