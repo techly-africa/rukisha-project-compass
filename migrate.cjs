@@ -10,11 +10,12 @@ if (!dbUrl) {
 }
 
 
-// Auto-correct local DB URL to Docker DB host in docker-compose environment
-if (fs.existsSync("/.dockerenv") && (dbUrl.includes("localhost:5433") || dbUrl.includes("127.0.0.1:5433"))) {
+// Auto-correct local DB URL to Docker DB host in container/Linux production environments
+if ((process.platform !== "darwin" || fs.existsSync("/.dockerenv")) && (dbUrl.includes("localhost:5433") || dbUrl.includes("127.0.0.1:5433"))) {
   console.log("Rewriting localhost:5433 database URL to internal Docker service db:5432");
   dbUrl = dbUrl.replace("localhost:5433", "db:5432").replace("127.0.0.1:5433", "db:5432");
 }
+
 
 
 async function run() {

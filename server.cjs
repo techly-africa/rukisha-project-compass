@@ -14,11 +14,12 @@ app.use(express.json({ limit: "50mb" })); // support large file uploads as base6
 const fs = require("fs");
 let connectionString = process.env.DATABASE_URL;
 
-// Auto-correct local DB URL to Docker DB host in docker-compose environment
-if (fs.existsSync("/.dockerenv") && connectionString && (connectionString.includes("localhost:5433") || connectionString.includes("127.0.0.1:5433"))) {
+// Auto-correct local DB URL to Docker DB host in container/Linux production environments
+if ((process.platform !== "darwin" || fs.existsSync("/.dockerenv")) && connectionString && (connectionString.includes("localhost:5433") || connectionString.includes("127.0.0.1:5433"))) {
   console.log("Rewriting localhost:5433 database URL to internal Docker service db:5432");
   connectionString = connectionString.replace("localhost:5433", "db:5432").replace("127.0.0.1:5433", "db:5432");
 }
+
 
 
 // Initialize PostgreSQL pool
