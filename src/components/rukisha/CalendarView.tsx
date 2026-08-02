@@ -199,9 +199,11 @@ export function CalendarView() {
   // ── Auto-jump to month containing tasks if current month is empty ──
   useEffect(() => {
     if (!hasAutoJumped && state.tasks.length > 0) {
-      const todayY = now.getFullYear();
-      const todayM = now.getMonth();
+      const curDate = new Date();
+      const todayY = curDate.getFullYear();
+      const todayM = curDate.getMonth();
       const todayHasTasks = state.tasks.some((t) => {
+        if (!t.planStart || t.planStart.length < 7) return false;
         const [y, m] = t.planStart.split("-").map(Number);
         return y === todayY && m === todayM + 1;
       });
@@ -242,32 +244,48 @@ export function CalendarView() {
     for (let d = 0; d < numDays; d++) {
       cells.push(dateAdd(firstDay, d));
     }
-    while (cells.length % 7 !== 0) {
+    let guard = 0;
+    while (cells.length % 7 !== 0 && guard < 14) {
       cells.push(dateAdd(cells[cells.length - 1], 1));
+      guard++;
     }
     return cells;
   }, [year, month]);
 
-  // Build task-to-date mapping
+  // Build task-to-date mapping optimized for current visible grid
   const tasksByCell = useMemo(() => {
     const map = new Map<string, CellTask[]>();
+    if (grid.length === 0) return map;
+
+    const gridSet = new Set(grid);
+    const minGridDate = grid[0];
+    const maxGridDate = grid[grid.length - 1];
 
     state.tasks.forEach((task) => {
+      if (!task.planStart || task.planStart.length < 10) return;
       const start = task.planStart;
-      const span = Math.max(1, task.planDuration);
+      const rawSpan = Math.max(1, Number(task.planDuration) || 1);
+      const span = Math.min(365, rawSpan);
+
+      const taskFinish = dateAdd(start, span - 1);
+      if (taskFinish < minGridDate || start > maxGridDate) return;
+
       for (let d = 0; d < span; d++) {
         const iso = dateAdd(start, d);
-        const isStart = d === 0;
-        const isEnd = d === span - 1;
-        const isContinuation = !isStart;
+        if (iso > maxGridDate) break;
+        if (gridSet.has(iso)) {
+          const isStart = d === 0;
+          const isEnd = d === span - 1;
+          const isContinuation = !isStart;
 
-        if (!map.has(iso)) map.set(iso, []);
-        map.get(iso)!.push({ task, isStart, isEnd, isContinuation });
+          if (!map.has(iso)) map.set(iso, []);
+          map.get(iso)!.push({ task, isStart, isEnd, isContinuation });
+        }
       }
     });
 
     return map;
-  }, [state.tasks]);
+  }, [state.tasks, grid]);
 
   const yearsList = useMemo(() => {
     const curY = new Date().getFullYear();
