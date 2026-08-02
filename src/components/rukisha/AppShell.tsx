@@ -42,12 +42,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    // Resolve the logged-in user's org on mount
+    // Try to resolve the user's org. If none found but they are superadmin/PM,
+    // use a synthetic "default" org context so the modal is always reachable.
     actions.getUserOrgs().then((orgs) => {
       if (orgs.length > 0) {
         const o = orgs[0];
         setOrgCtx({ id: o.id, name: o.name, role: o.role as any });
       }
+      // orgCtx stays null until state loads if orgs is empty; we fall back to
+      // isSuperAdmin / userRole check in the nav render instead.
     });
   }, []);
 
@@ -175,8 +178,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
-            {/* Organization Members – only shown when user has an org */}
-            {orgCtx && (orgCtx.role === "Admin" || orgCtx.role === "PM") && (
+            {/* Organization Members – visible to SuperAdmins, PMs, and Admins */}
+            {(state.isSuperAdmin ||
+              state.userRole === "Admin" ||
+              state.userRole === "PM" ||
+              orgCtx) && (
               <button
                 onClick={() => setShowOrgModal(true)}
                 title={isCollapsed ? "Organization Members" : undefined}
@@ -360,11 +366,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Org Member Management Modal */}
-      {showOrgModal && orgCtx && (
+      {showOrgModal && (
         <OrgUserManagementModal
-          orgId={orgCtx.id}
-          orgName={orgCtx.name}
-          currentUserRole={orgCtx.role}
+          orgId={orgCtx?.id ?? "default"}
+          orgName={orgCtx?.name ?? "My Organization"}
+          currentUserRole={orgCtx?.role ?? (state.isSuperAdmin ? "Admin" : (state.userRole as any) ?? "PM")}
           onClose={() => setShowOrgModal(false)}
         />
       )}

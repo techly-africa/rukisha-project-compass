@@ -21,11 +21,16 @@ const ROLE_COLORS: Record<string, string> = {
   Staff: "bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-1 ring-slate-400/30",
 };
 
-export function OrgUserManagementModal({ orgId, orgName, currentUserRole, onClose }: Props) {
+export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp, currentUserRole, onClose }: Props) {
   const [tab, setTab] = useState<Tab>("directory");
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  // Resolved org context (handles the "default" sentinel)
+  const [resolvedOrgId, setResolvedOrgId] = useState<string>(orgIdProp === "default" ? "" : orgIdProp);
+  const [resolvedOrgName, setResolvedOrgName] = useState<string>(orgNameProp);
+  const [initError, setInitError] = useState<string | null>(null);
 
   // Invite form
   const [inviteEmail, setInviteEmail] = useState("");
@@ -50,16 +55,57 @@ export function OrgUserManagementModal({ orgId, orgName, currentUserRole, onClos
 
   const canManage = currentUserRole === "Admin" || currentUserRole === "PM";
 
+  // If orgId is the "default" sentinel, find or create the org automatically
+  useEffect(() => {
+    if (orgIdProp !== "default") return;
+    (async () => {
+      setLoading(true);
+      // Try to find any existing org
+      const { data: orgs } = await (supabase as any)
+        .from("rk_organizations")
+        .select("id, name")
+        .limit(1);
+      if (orgs && orgs.length > 0) {
+        setResolvedOrgId(orgs[0].id);
+        setResolvedOrgName(orgs[0].name);
+      } else {
+        // Auto-create a default org
+        const { data: newOrg, error } = await (supabase as any)
+          .from("rk_organizations")
+          .insert({ name: "My Organization" })
+          .select()
+          .single();
+        if (error) {
+          setInitError("Could not initialize organization. Please run database migrations.");
+          setLoading(false);
+          return;
+        }
+        setResolvedOrgId(newOrg.id);
+        setResolvedOrgName(newOrg.name);
+        // Add current user as Admin
+        const email = localStorage.getItem("rk-email")?.trim().toLowerCase();
+        if (email) {
+          await (supabase as any)
+            .from("rk_org_members")
+            .insert({ org_id: newOrg.id, email, name: email, role: "Admin" });
+        }
+      }
+      setLoading(false);
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgIdProp]);
+
   const fetchMembers = useCallback(async () => {
+    if (!resolvedOrgId) return;
     setLoading(true);
-    const data = await actions.loadOrgMembers(orgId);
+    const data = await actions.loadOrgMembers(resolvedOrgId);
     setMembers(data);
     setLoading(false);
-  }, [orgId]);
+  }, [resolvedOrgId]);
 
   useEffect(() => {
-    fetchMembers();
-  }, [fetchMembers]);
+    if (resolvedOrgId) fetchMembers();
+  }, [fetchMembers, resolvedOrgId]);
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
@@ -67,12 +113,13 @@ export function OrgUserManagementModal({ orgId, orgName, currentUserRole, onClos
       return;
     }
     setInviting(true);
-    const result = await actions.inviteOrgMember(orgId, inviteEmail, inviteName, inviteRole);
+    const result = await actions.inviteOrgMember(resolvedOrgId, inviteEmail, inviteName, inviteRole);
     setInviting(false);
     if (result) {
       setMembers((prev) => [...prev, result]);
       setInviteEmail("");
       setInviteName("");
+
       setInviteRole("Staff");
       setTab("directory");
     }
@@ -156,7 +203,7 @@ export function OrgUserManagementModal({ orgId, orgName, currentUserRole, onClos
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border bg-gradient-to-r from-[var(--rk-navy)]/5 to-transparent">
           <div>
             <h2 className="text-lg font-bold tracking-tight text-foreground">Organization Members</h2>
-            <p className="text-xs text-muted-foreground mt-0.5 font-medium">{orgName}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 font-medium">{resolvedOrgName}</p>
           </div>
           <button
             onClick={onClose}
@@ -185,8 +232,18 @@ export function OrgUserManagementModal({ orgId, orgName, currentUserRole, onClos
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
+          {/* Init error */}
+          {initError && (
+            <div className="flex flex-col items-center justify-center h-40 text-center gap-3">
+              <div className="text-3xl">⚠️</div>
+              <p className="text-sm text-red-500 font-medium">{initError}</p>
+              <p className="text-xs text-muted-foreground">
+                Run <code className="bg-muted px-1 rounded">node migrate.cjs</code> on your server to create the organization tables.
+              </p>
+            </div>
+          )}
           {/* DIRECTORY TAB */}
-          {tab === "directory" && (
+          {!initError && tab === "directory" && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <input
@@ -330,10 +387,10 @@ export function OrgUserManagementModal({ orgId, orgName, currentUserRole, onClos
           )}
 
           {/* INVITE TAB */}
-          {tab === "invite" && canManage && (
+          {!initError && tab === "invite" && canManage && (
             <div className="max-w-md mx-auto space-y-5">
               <p className="text-sm text-muted-foreground">
-                Invite someone to join <strong>{orgName}</strong>. They'll have access to any
+                Invite someone to join <strong>{resolvedOrgName}</strong>. They'll have access to any
                 projects you assign them to.
               </p>
 
@@ -404,7 +461,7 @@ export function OrgUserManagementModal({ orgId, orgName, currentUserRole, onClos
           )}
 
           {/* PROJECTS TAB */}
-          {tab === "projects" && selectedMember && (
+          {!initError && tab === "projects" && selectedMember && (
             <div className="space-y-5">
               <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/60">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--rk-navy)]/10 dark:bg-[var(--rk-gold)]/10 text-[var(--rk-navy)] dark:text-[var(--rk-gold)] text-sm font-bold uppercase">
