@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { dateAdd, daysBetween, getTaskStatus, useProject } from "@/lib/rukisha-store";
 import type { Task } from "@/lib/rukisha-types";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from "lucide-react";
 import { TaskDetailModal, CreateTaskModal } from "./TaskModals";
 import { Button } from "@/components/ui/button";
 
@@ -96,7 +96,6 @@ function CalendarCell({
   isPM: boolean;
 }) {
   const dayNum = parseInt(iso.slice(8), 10);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   return (
     <div
@@ -164,9 +163,60 @@ export function CalendarView() {
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth()); // 0-indexed
+  const [month, setMonth] = useState(now.getMonth());
+  const [hasAutoJumped, setHasAutoJumped] = useState(false);
 
   const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  // ── Months with tasks breakdown ──
+  const monthsWithTasks = useMemo(() => {
+    const map = new Map<string, { year: number; month: number; count: number; label: string }>();
+
+    state.tasks.forEach((t) => {
+      if (!t.planStart || t.planStart.length < 7) return;
+      const [yStr, mStr] = t.planStart.split("-");
+      const y = parseInt(yStr, 10);
+      const m = parseInt(mStr, 10) - 1;
+      if (isNaN(y) || isNaN(m)) return;
+
+      const key = `${y}-${m}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          year: y,
+          month: m,
+          count: 0,
+          label: `${MONTH_NAMES[m].slice(0, 3)} '${String(y).slice(2)}`,
+        });
+      }
+      map.get(key)!.count++;
+    });
+
+    return Array.from(map.values()).sort((a, b) =>
+      a.year !== b.year ? a.year - b.year : a.month - b.month,
+    );
+  }, [state.tasks]);
+
+  // ── Auto-jump to month containing tasks if current month is empty ──
+  useEffect(() => {
+    if (!hasAutoJumped && state.tasks.length > 0) {
+      const todayY = now.getFullYear();
+      const todayM = now.getMonth();
+      const todayHasTasks = state.tasks.some((t) => {
+        const [y, m] = t.planStart.split("-").map(Number);
+        return y === todayY && m === todayM + 1;
+      });
+
+      if (!todayHasTasks && monthsWithTasks.length > 0) {
+        // Jump to the month with the highest task count
+        const busiestMonth = [...monthsWithTasks].sort((a, b) => b.count - a.count)[0];
+        if (busiestMonth) {
+          setYear(busiestMonth.year);
+          setMonth(busiestMonth.month);
+        }
+      }
+      setHasAutoJumped(true);
+    }
+  }, [state.tasks, monthsWithTasks, hasAutoJumped]);
 
   // Navigate
   const prevMonth = () => {
@@ -183,7 +233,7 @@ export function CalendarView() {
   const grid = useMemo(() => {
     const firstDay = monthStart(year, month);
     const numDays = daysInMonth(year, month);
-    const startDow = dayOfWeek(firstDay); // 0=Mon
+    const startDow = dayOfWeek(firstDay);
 
     const cells: string[] = [];
     for (let i = 0; i < startDow; i++) {
@@ -219,23 +269,52 @@ export function CalendarView() {
     return map;
   }, [state.tasks]);
 
+  const yearsList = useMemo(() => {
+    const curY = new Date().getFullYear();
+    return [curY - 1, curY, curY + 1, curY + 2];
+  }, []);
+
   return (
     <div className="flex h-full flex-col gap-0 overflow-hidden p-4">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3 rounded-t-xl">
+      <div className="flex flex-wrap items-center justify-between border-b border-border bg-card px-4 py-3 rounded-t-xl gap-2">
         <div className="flex items-center gap-3">
-          <h2 className="text-base font-bold text-[var(--rk-navy)]">
-            {MONTH_NAMES[month]} {year}
-          </h2>
-          <span className="text-xs text-muted-foreground">
-            {state.tasks.length} tasks scheduled
+          {/* Month & Year Selectors */}
+          <div className="flex items-center gap-1.5">
+            <select
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+              className="font-bold text-base bg-transparent text-[var(--rk-navy)] outline-none cursor-pointer border-b border-dashed border-border py-0.5 focus:border-[var(--rk-navy)]"
+            >
+              {MONTH_NAMES.map((name, idx) => (
+                <option key={name} value={idx}>
+                  {name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="font-bold text-base bg-transparent text-[var(--rk-navy)] outline-none cursor-pointer border-b border-dashed border-border py-0.5 focus:border-[var(--rk-navy)]"
+            >
+              {yearsList.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            • {state.tasks.length} total tasks
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {isPM && (
             <CreateTaskModal>
-              <Button size="sm" className="bg-[var(--rk-navy)] text-white hover:bg-[var(--rk-navy)]/90 shadow-sm mr-2">
+              <Button size="sm" className="bg-[var(--rk-navy)] text-white hover:bg-[var(--rk-navy)]/90 shadow-sm mr-1">
                 <Plus className="h-4 w-4 mr-1" />
                 Add Task
               </Button>
@@ -264,6 +343,43 @@ export function CalendarView() {
           </button>
         </div>
       </div>
+
+      {/* ── Month Quick Jump Bar ── */}
+      {monthsWithTasks.length > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto py-2 px-4 bg-muted/20 border-b border-border text-xs scrollbar-none">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground shrink-0 mr-1 flex items-center gap-1">
+            <CalendarIcon className="h-3 w-3 text-[var(--rk-navy)]" />
+            Months with tasks:
+          </span>
+          {monthsWithTasks.map((m) => {
+            const isActive = year === m.year && month === m.month;
+            return (
+              <button
+                key={`${m.year}-${m.month}`}
+                onClick={() => {
+                  setYear(m.year);
+                  setMonth(m.month);
+                }}
+                className={[
+                  "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all shrink-0 cursor-pointer",
+                  isActive
+                    ? "bg-[var(--rk-navy)] text-white shadow-xs font-bold"
+                    : "bg-background border border-border text-foreground/80 hover:bg-muted hover:text-[var(--rk-navy)]",
+                ].join(" ")}
+              >
+                <span>{m.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    isActive ? "bg-white/20 text-white" : "bg-muted text-muted-foreground font-bold"
+                  }`}
+                >
+                  {m.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── Weekday labels ── */}
       <div className="grid grid-cols-7 border-b border-border bg-muted/30">
