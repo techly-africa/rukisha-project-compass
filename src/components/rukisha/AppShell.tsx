@@ -369,7 +369,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {showOrgModal && (
         <OrgUserManagementModal
           orgId={orgCtx?.id ?? "default"}
-          orgName={orgCtx?.name ?? "My Organization"}
+          orgName={orgCtx?.name ?? "Rukisha Solutions Rwanda"}
           currentUserRole={orgCtx?.role ?? (state.isSuperAdmin ? "Admin" : (state.userRole as any) ?? "PM")}
           onClose={() => setShowOrgModal(false)}
         />

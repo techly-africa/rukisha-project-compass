@@ -938,7 +938,7 @@ export const actions = {
     return true;
   },
 
-  /** Assign an org member to a project (adds to rk_team) */
+  /** Assign a member to a project (ensures org membership first, then adds to rk_team) */
   async assignMemberToProject(
     projectIdTarget: string,
     email: string,
@@ -946,6 +946,36 @@ export const actions = {
     role: "Admin" | "PM" | "Staff",
   ) {
     const cleanEmail = email.trim().toLowerCase();
+
+    // Find project's org_id
+    const { data: proj } = await (supabase as any)
+      .from("rk_project")
+      .select("org_id")
+      .eq("id", projectIdTarget)
+      .maybeSingle();
+
+    const targetOrgId = proj?.org_id || "00000000-0000-0000-0000-000000000001";
+
+    // Ensure user belongs to the organization first
+    const { data: orgMember } = await (supabase as any)
+      .from("rk_org_members")
+      .select("id")
+      .eq("org_id", targetOrgId)
+      .eq("email", cleanEmail)
+      .maybeSingle();
+
+    if (!orgMember) {
+      // Auto-register user in organization if not already a member
+      await (supabase as any)
+        .from("rk_org_members")
+        .insert({
+          org_id: targetOrgId,
+          email: cleanEmail,
+          name: name || cleanEmail.split("@")[0],
+          role: role === "Admin" ? "Admin" : role === "PM" ? "PM" : "Staff",
+        });
+    }
+
     const { data: existing } = await (supabase as any)
       .from("rk_team")
       .select("id")
@@ -1012,6 +1042,20 @@ export const actions = {
       name: r.rk_organizations?.name ?? r.org_id,
       role: r.role,
     }));
+  },
+
+  /** Update organization details (e.g. name) */
+  async updateOrganization(orgId: string, name: string) {
+    const { error } = await (supabase as any)
+      .from("rk_organizations")
+      .update({ name })
+      .eq("id", orgId);
+    if (error) {
+      toast.error("Failed to update organization: " + error.message);
+      return false;
+    }
+    toast.success("Organization details updated.");
+    return true;
   },
 };
 

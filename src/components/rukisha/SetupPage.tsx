@@ -187,6 +187,35 @@ export function SetupPage() {
         });
       }
 
+      // Get project org_id
+      const { data: projData } = await (supabase as any)
+        .from("rk_project")
+        .select("org_id")
+        .eq("id", pid)
+        .maybeSingle();
+
+      const orgId = projData?.org_id || "00000000-0000-0000-0000-000000000001";
+
+      // Enforce organization membership for all team members
+      for (const m of validTeam) {
+        const cleanEmail = m.email.trim().toLowerCase();
+        const { data: existingOrgMember } = await (supabase as any)
+          .from("rk_org_members")
+          .select("id")
+          .eq("org_id", orgId)
+          .eq("email", cleanEmail)
+          .maybeSingle();
+
+        if (!existingOrgMember) {
+          await (supabase as any).from("rk_org_members").insert({
+            org_id: orgId,
+            email: cleanEmail,
+            name: m.name.trim() || cleanEmail.split("@")[0],
+            role: m.role && m.role !== "Member" ? m.role : "Staff",
+          });
+        }
+      }
+
       // Replace team and stakeholders
       await Promise.all([
         supabase.from("rk_team").delete().eq("project_id", pid),

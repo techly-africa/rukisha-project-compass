@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { actions } from "@/lib/rukisha-store";
 import { OrgMember } from "@/lib/rukisha-types";
-import { X, UserPlus, Trash2, Edit2, Check, ChevronDown, FolderOpen, RefreshCw } from "lucide-react";
+import { X, UserPlus, Trash2, Edit2, Check, ChevronDown, FolderOpen, RefreshCw, Building, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,7 +12,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Tab = "directory" | "invite" | "projects";
+type Tab = "directory" | "invite" | "projects" | "settings";
 
 const ROLE_COLORS: Record<string, string> = {
   Admin:
@@ -53,7 +53,16 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
   const [assignRole, setAssignRole] = useState<"Admin" | "PM" | "Staff">("Staff");
   const [loadingProjects, setLoadingProjects] = useState(false);
 
+  // Org Details Settings
+  const [orgNameInput, setOrgNameInput] = useState<string>(orgNameProp);
+  const [savingOrg, setSavingOrg] = useState(false);
+
+  useEffect(() => {
+    setOrgNameInput(resolvedOrgName);
+  }, [resolvedOrgName]);
+
   const canManage = currentUserRole === "Admin" || currentUserRole === "PM";
+  const isAdmin = currentUserRole === "Admin";
 
   // If orgId is the "default" sentinel, find or create the org automatically
   useEffect(() => {
@@ -72,7 +81,7 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
         // Auto-create a default org
         const { data: newOrg, error } = await (supabase as any)
           .from("rk_organizations")
-          .insert({ name: "My Organization" })
+          .insert({ name: "Rukisha Solutions Rwanda" })
           .select()
           .single();
         if (error) {
@@ -181,6 +190,19 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
     if (ok) setMemberProjects((prev) => prev.filter((p) => p.projectId !== projectId));
   };
 
+  const handleSaveOrgDetails = async () => {
+    if (!orgNameInput.trim()) {
+      toast.error("Organization name cannot be empty.");
+      return;
+    }
+    setSavingOrg(true);
+    const ok = await actions.updateOrganization(resolvedOrgId, orgNameInput.trim());
+    setSavingOrg(false);
+    if (ok) {
+      setResolvedOrgName(orgNameInput.trim());
+    }
+  };
+
   const filtered = members.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -191,6 +213,7 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
     { key: "directory", label: "Directory" },
     ...(canManage ? [{ key: "invite" as Tab, label: "Invite Member" }] : []),
     ...(selectedMember ? [{ key: "projects" as Tab, label: `${selectedMember.name}'s Projects` }] : []),
+    ...(isAdmin ? [{ key: "settings" as Tab, label: "Org Settings" }] : []),
   ];
 
   return (
@@ -570,6 +593,49 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ORG SETTINGS TAB */}
+          {!initError && tab === "settings" && isAdmin && (
+            <div className="max-w-md mx-auto space-y-5">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/40 border border-border/60">
+                <Building className="h-6 w-6 text-[var(--rk-navy)] dark:text-[var(--rk-gold)] shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-sm">Organization Details</h3>
+                  <p className="text-xs text-muted-foreground">Manage your organization's display name and settings.</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
+                    Organization Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={orgNameInput}
+                    onChange={(e) => setOrgNameInput(e.target.value)}
+                    placeholder="Rukisha Solutions Rwanda"
+                    className="w-full h-9 rounded-lg border border-border bg-muted/40 px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--rk-navy)]/30 transition"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleSaveOrgDetails}
+                disabled={savingOrg || !orgNameInput.trim()}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--rk-navy)] px-4 py-2.5 text-sm font-semibold text-white shadow hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingOrg ? (
+                  <span className="animate-pulse">Saving…</span>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Save Organization Details
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>

@@ -162,13 +162,13 @@ async function run() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS public.rk_organizations (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        name text NOT NULL DEFAULT 'Rukisha Africa',
+        name text NOT NULL DEFAULT 'Rukisha Solutions Rwanda',
         created_at timestamp with time zone DEFAULT now() NOT NULL
       );
 
       INSERT INTO public.rk_organizations (id, name)
-      VALUES ('00000000-0000-0000-0000-000000000001', 'Rukisha Africa')
-      ON CONFLICT (id) DO NOTHING;
+      VALUES ('00000000-0000-0000-0000-000000000001', 'Rukisha Solutions Rwanda')
+      ON CONFLICT (id) DO UPDATE SET name = 'Rukisha Solutions Rwanda' WHERE public.rk_organizations.name = 'Rukisha Africa' OR public.rk_organizations.name = 'My Organization';
 
       ALTER TABLE public.rk_project ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES public.rk_organizations(id);
       UPDATE public.rk_project SET org_id = '00000000-0000-0000-0000-000000000001' WHERE org_id IS NULL;
