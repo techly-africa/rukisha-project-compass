@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { actions, dateAdd, daysBetween, getTaskStatus, todayISO, useProject } from "@/lib/rukisha-store";
 import type { Task, Section } from "@/lib/rukisha-types";
-import { LayoutList, Columns } from "lucide-react";
-import { TaskDetailModal } from "./GanttChart";
+import { LayoutList, Columns, Plus } from "lucide-react";
+import { TaskDetailModal, CreateTaskModal } from "./TaskModals";
+import { Button } from "@/components/ui/button";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -13,13 +14,14 @@ interface StatusColumn {
   label: string;
   color: string;
   headerBg: string;
+  defaultPct: number;
 }
 
 const STATUS_COLUMNS: StatusColumn[] = [
-  { id: "not_started", label: "Not Started", color: "#94a3b8",            headerBg: "bg-slate-100 dark:bg-slate-800"    },
-  { id: "in_progress", label: "In Progress", color: "var(--rk-blue)",     headerBg: "bg-blue-50 dark:bg-blue-950"       },
-  { id: "at_risk",     label: "At Risk",     color: "var(--rk-warn)",     headerBg: "bg-amber-50 dark:bg-amber-950"     },
-  { id: "complete",    label: "Complete",    color: "#10b981",             headerBg: "bg-emerald-50 dark:bg-emerald-950" },
+  { id: "not_started", label: "Not Started", color: "#94a3b8",            headerBg: "bg-slate-100 dark:bg-slate-800",    defaultPct: 0 },
+  { id: "in_progress", label: "In Progress", color: "var(--rk-blue)",     headerBg: "bg-blue-50 dark:bg-blue-950",       defaultPct: 50 },
+  { id: "at_risk",     label: "At Risk",     color: "var(--rk-warn)",     headerBg: "bg-amber-50 dark:bg-amber-950",     defaultPct: 25 },
+  { id: "complete",    label: "Complete",    color: "#10b981",             headerBg: "bg-emerald-50 dark:bg-emerald-950", defaultPct: 100 },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -154,7 +156,9 @@ function KanbanColumn({
   tasks,
   sections,
   mode,
-  isDraggable,
+  isPM,
+  sectionId,
+  defaultPct,
   onDragStart,
   onDrop,
 }: {
@@ -164,7 +168,9 @@ function KanbanColumn({
   tasks: Task[];
   sections: Section[];
   mode: KanbanGrouping;
-  isDraggable: boolean;
+  isPM: boolean;
+  sectionId?: string;
+  defaultPct?: number;
   onDragStart: (taskId: string) => void;
   onDrop: () => void;
 }) {
@@ -192,11 +198,11 @@ function KanbanColumn({
       </div>
 
       {/* Cards */}
-      <div className="flex flex-col gap-2 overflow-y-auto p-2.5" style={{ maxHeight: "calc(100vh - 190px)" }}>
+      <div className="flex flex-col gap-2 overflow-y-auto p-2.5 flex-1" style={{ maxHeight: "calc(100vh - 230px)" }}>
         {tasks.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="flex flex-col items-center justify-center py-8 text-center">
             <span className="text-3xl opacity-10">□</span>
-            <span className="mt-1 text-xs text-muted-foreground/50 italic">Empty</span>
+            <span className="mt-1 text-xs text-muted-foreground/50 italic">No tasks</span>
           </div>
         )}
         {tasks.map((task) => (
@@ -204,11 +210,23 @@ function KanbanColumn({
             key={task.id}
             task={task}
             section={mode === "status" ? sections.find((s) => s.id === task.sectionId) : undefined}
-            isDraggable={isDraggable}
+            isDraggable={isPM}
             onDragStart={onDragStart}
           />
         ))}
       </div>
+
+      {/* Bottom Add Task button */}
+      {isPM && (
+        <div className="p-2 border-t border-border/50">
+          <CreateTaskModal defaultSectionId={sectionId} defaultPercentComplete={defaultPct}>
+            <button className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-1.5 text-xs font-semibold text-muted-foreground hover:border-[var(--rk-navy)] hover:bg-background hover:text-[var(--rk-navy)] transition-all">
+              <Plus className="h-3.5 w-3.5" />
+              Add Task
+            </button>
+          </CreateTaskModal>
+        </div>
+      )}
     </div>
   );
 }
@@ -254,13 +272,12 @@ export function KanbanView() {
       actions.updateTask(dragTaskId, { percentComplete: 0 });
     } else if (statusId === "in_progress") {
       const pct =
-        task.percentComplete > 0 && task.percentComplete < 100 ? task.percentComplete : 10;
+        task.percentComplete > 0 && task.percentComplete < 100 ? task.percentComplete : 50;
       actions.updateTask(dragTaskId, {
         percentComplete: pct,
         actualStart: task.actualStart || todayISO(),
       });
     }
-    // "at_risk" → status is derived from dates, no explicit pct change needed
   };
 
   // ── Section mode: update sectionId ──
@@ -269,17 +286,6 @@ export function KanbanView() {
     actions.updateTask(dragTaskId, { sectionId });
     setDragTaskId(null);
   };
-
-  if (state.tasks.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-        <div className="text-5xl opacity-20">⬜</div>
-        <p className="text-sm text-muted-foreground">
-          No tasks yet. Add tasks in the Timeline view first.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-full flex-col gap-4 p-4">
@@ -292,7 +298,17 @@ export function KanbanView() {
           </p>
         </div>
 
-        {/* Group toggle — PM only for changing, all can see current mode */}
+        {/* Add Task Button for PM */}
+        {isPM && (
+          <CreateTaskModal>
+            <Button size="sm" className="bg-[var(--rk-navy)] text-white hover:bg-[var(--rk-navy)]/90 shadow-sm ml-2">
+              <Plus className="h-4 w-4 mr-1" />
+              Add Task
+            </Button>
+          </CreateTaskModal>
+        )}
+
+        {/* Group toggle */}
         <div className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-background p-0.5 shadow-sm">
           <span className="px-2 text-[10px] uppercase font-bold text-muted-foreground/50 tracking-wider">
             Group by
@@ -340,7 +356,8 @@ export function KanbanView() {
                   tasks={colTasks}
                   sections={state.sections}
                   mode="status"
-                  isDraggable={isPM}
+                  isPM={isPM}
+                  defaultPct={col.defaultPct}
                   onDragStart={handleDragStart}
                   onDrop={() => handleStatusDrop(col.id)}
                 />
@@ -357,7 +374,8 @@ export function KanbanView() {
                   tasks={colTasks}
                   sections={state.sections}
                   mode="section"
-                  isDraggable={isPM}
+                  isPM={isPM}
+                  sectionId={sec.id}
                   onDragStart={handleDragStart}
                   onDrop={() => handleSectionDrop(sec.id)}
                 />

@@ -1,22 +1,20 @@
 import { useMemo, useState } from "react";
 import { dateAdd, daysBetween, getTaskStatus, useProject } from "@/lib/rukisha-store";
 import type { Task } from "@/lib/rukisha-types";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { TaskDetailModal } from "./GanttChart";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { TaskDetailModal, CreateTaskModal } from "./TaskModals";
+import { Button } from "@/components/ui/button";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Returns YYYY-MM-DD for the first day of a month offset from today */
 function monthStart(year: number, month: number): string {
   return `${year}-${String(month + 1).padStart(2, "0")}-01`;
 }
 
-/** Number of days in a given month */
 function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
-/** Day of week (0 = Mon, 6 = Sun) for a YYYY-MM-DD string */
 function dayOfWeek(iso: string): number {
   const d = new Date(iso + "T00:00:00");
   return (d.getDay() + 6) % 7; // shift Sun=0 → Mon=0
@@ -28,7 +26,7 @@ const MONTH_NAMES = [
   "July","August","September","October","November","December",
 ];
 
-// ─── Task chip (single-day or start/end indicator) ────────────────────────────
+// ─── Task chip ────────────────────────────────────────────────────────────────
 
 function TaskChip({
   task,
@@ -55,7 +53,7 @@ function TaskChip({
     <TaskDetailModal task={task}>
       <div
         className={[
-          "flex items-center h-5 text-[10px] font-semibold text-white cursor-pointer overflow-hidden",
+          "flex items-center h-5 text-[10px] font-semibold text-white cursor-pointer overflow-hidden shadow-xs",
           "transition-opacity hover:opacity-80",
           isStart ? "rounded-l-full pl-1.5" : "pl-0.5",
           isEnd ? "rounded-r-full pr-1.5" : "pr-0",
@@ -65,7 +63,7 @@ function TaskChip({
           marginLeft: isStart ? 0 : -1,
           marginRight: isEnd ? 0 : -1,
         }}
-        title={task.activity}
+        title={`${task.activity} (${task.percentComplete}%)`}
       >
         {(isStart || !isContinuation) && (
           <span className="truncate">{task.activity}</span>
@@ -89,33 +87,52 @@ function CalendarCell({
   isCurrentMonth,
   isToday,
   cellTasks,
+  isPM,
 }: {
   iso: string;
   isCurrentMonth: boolean;
   isToday: boolean;
   cellTasks: CellTask[];
+  isPM: boolean;
 }) {
   const dayNum = parseInt(iso.slice(8), 10);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   return (
     <div
       className={[
-        "min-h-[90px] border-r border-b border-border p-1 flex flex-col gap-0.5",
+        "group min-h-[95px] border-r border-b border-border p-1 flex flex-col gap-0.5 relative transition-colors",
         isCurrentMonth ? "bg-card" : "bg-muted/20",
         isToday ? "bg-[var(--rk-navy)]/5" : "",
       ].join(" ")}
     >
-      <div
-        className={[
-          "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold self-end",
-          isToday
-            ? "bg-[var(--rk-navy)] text-white"
-            : isCurrentMonth
-            ? "text-foreground"
-            : "text-muted-foreground/40",
-        ].join(" ")}
-      >
-        {dayNum}
+      {/* Date Header + Plus Button on Hover for PM */}
+      <div className="flex items-center justify-between">
+        {isPM ? (
+          <CreateTaskModal defaultDate={iso}>
+            <button
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-muted-foreground hover:bg-muted hover:text-[var(--rk-navy)]"
+              title={`Add task starting ${iso}`}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </CreateTaskModal>
+        ) : (
+          <div />
+        )}
+
+        <div
+          className={[
+            "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold shrink-0",
+            isToday
+              ? "bg-[var(--rk-navy)] text-white"
+              : isCurrentMonth
+              ? "text-foreground"
+              : "text-muted-foreground/40",
+          ].join(" ")}
+        >
+          {dayNum}
+        </div>
       </div>
 
       {/* Task chips — show up to 3, then "+N more" */}
@@ -130,7 +147,7 @@ function CalendarCell({
           />
         ))}
         {cellTasks.length > 3 && (
-          <span className="text-[9px] text-muted-foreground pl-1">
+          <span className="text-[9px] font-semibold text-muted-foreground pl-1">
             +{cellTasks.length - 3} more
           </span>
         )}
@@ -143,6 +160,7 @@ function CalendarCell({
 
 export function CalendarView() {
   const state = useProject();
+  const isPM = state.isSuperAdmin || state.userRole === "PM";
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -161,13 +179,12 @@ export function CalendarView() {
   };
   const goToToday = () => { setYear(now.getFullYear()); setMonth(now.getMonth()); };
 
-  // Build the grid: Mon-aligned weeks
+  // Build grid: Mon-aligned weeks
   const grid = useMemo(() => {
     const firstDay = monthStart(year, month);
     const numDays = daysInMonth(year, month);
     const startDow = dayOfWeek(firstDay); // 0=Mon
 
-    // Pad leading days from previous month
     const cells: string[] = [];
     for (let i = 0; i < startDow; i++) {
       cells.push(dateAdd(firstDay, i - startDow));
@@ -175,7 +192,6 @@ export function CalendarView() {
     for (let d = 0; d < numDays; d++) {
       cells.push(dateAdd(firstDay, d));
     }
-    // Pad trailing days to fill last week
     while (cells.length % 7 !== 0) {
       cells.push(dateAdd(cells[cells.length - 1], 1));
     }
@@ -188,9 +204,6 @@ export function CalendarView() {
 
     state.tasks.forEach((task) => {
       const start = task.planStart;
-      const end = dateAdd(task.planStart, task.planDuration - 1);
-
-      // Iterate each day the task spans
       const span = Math.max(1, task.planDuration);
       for (let d = 0; d < span; d++) {
         const iso = dateAdd(start, d);
@@ -207,13 +220,28 @@ export function CalendarView() {
   }, [state.tasks]);
 
   return (
-    <div className="flex h-full flex-col gap-0 overflow-hidden">
+    <div className="flex h-full flex-col gap-0 overflow-hidden p-4">
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 border-b border-border bg-card px-4 py-3">
-        <h2 className="text-base font-bold text-[var(--rk-navy)]">
-          {MONTH_NAMES[month]} {year}
-        </h2>
-        <div className="ml-auto flex items-center gap-1">
+      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3 rounded-t-xl">
+        <div className="flex items-center gap-3">
+          <h2 className="text-base font-bold text-[var(--rk-navy)]">
+            {MONTH_NAMES[month]} {year}
+          </h2>
+          <span className="text-xs text-muted-foreground">
+            {state.tasks.length} tasks scheduled
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isPM && (
+            <CreateTaskModal>
+              <Button size="sm" className="bg-[var(--rk-navy)] text-white hover:bg-[var(--rk-navy)]/90 shadow-sm mr-2">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Task
+              </Button>
+            </CreateTaskModal>
+          )}
+
           <button
             onClick={goToToday}
             className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
@@ -251,12 +279,12 @@ export function CalendarView() {
         ))}
       </div>
 
-      {/* ── Grid ── */}
-      <div className="grid grid-cols-7 flex-1 overflow-y-auto border-l border-t border-border">
+      {/* ── Calendar Grid ── */}
+      <div className="grid flex-1 grid-cols-7 border-l border-t border-border overflow-y-auto rounded-b-xl">
         {grid.map((iso) => {
-          const isCurrentMonth = iso.slice(5, 7) === String(month + 1).padStart(2, "0");
+          const isCurrentMonth = parseInt(iso.slice(5, 7), 10) === month + 1;
           const isToday = iso === todayIso;
-          const cellTasks = tasksByCell.get(iso) ?? [];
+          const cellTasks = tasksByCell.get(iso) || [];
 
           return (
             <CalendarCell
@@ -265,25 +293,10 @@ export function CalendarView() {
               isCurrentMonth={isCurrentMonth}
               isToday={isToday}
               cellTasks={cellTasks}
+              isPM={isPM}
             />
           );
         })}
-      </div>
-
-      {/* ── Legend ── */}
-      <div className="flex flex-wrap items-center gap-3 border-t border-border bg-card px-4 py-2">
-        {[
-          { label: "Complete",    color: "#10b981" },
-          { label: "In Progress", color: "var(--rk-blue)" },
-          { label: "At Risk",     color: "var(--rk-warn)" },
-          { label: "Not Started", color: "#94a3b8" },
-          { label: "Overdue",     color: "var(--rk-danger)" },
-        ].map(({ label, color }) => (
-          <div key={label} className="flex items-center gap-1">
-            <span className="h-2 w-4 rounded-full" style={{ background: color }} />
-            <span className="text-[10px] text-muted-foreground">{label}</span>
-          </div>
-        ))}
       </div>
     </div>
   );

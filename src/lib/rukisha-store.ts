@@ -441,7 +441,16 @@ export const actions = {
       loadAll();
     }
   },
-  async addTask(sectionId: string) {
+  async addTask(
+    sectionId: string,
+    initialProps?: {
+      activity?: string;
+      owner?: string;
+      planStart?: string;
+      planDuration?: number;
+      percentComplete?: number;
+    },
+  ) {
     if (!projectId) return;
     try {
       const { data, error } = await supabase
@@ -449,23 +458,27 @@ export const actions = {
         .insert({
           project_id: projectId,
           section_id: sectionId,
-          activity: "New task",
-          owner: "",
-          plan_start: todayISO(),
-          plan_duration: 5,
+          activity: initialProps?.activity || "New task",
+          owner: initialProps?.owner || "",
+          plan_start: initialProps?.planStart || todayISO(),
+          plan_duration: initialProps?.planDuration !== undefined ? initialProps.planDuration : 5,
           actual_duration: 0,
-          percent_complete: 0,
+          percent_complete: initialProps?.percentComplete || 0,
           position: state.tasks.length,
         })
         .select()
         .single();
       if (error) throw error;
-      if (data) setState((s) => ({ ...s, tasks: [...s.tasks, mapTask(data as DbTask)] }));
+      if (data) {
+        setState((s) => ({ ...s, tasks: [...s.tasks, mapTask(data as DbTask)] }));
+        toast.success("Task created successfully");
+      }
     } catch (err) {
       console.error("Task creation failed:", err);
-      toast.error("Failed to add mission task");
+      toast.error("Failed to add task");
     }
   },
+
   async deleteTask(id: string) {
     setState((s) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== id) }));
     await supabase.from("rk_tasks").delete().eq("id", id);
