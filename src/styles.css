@@ -188,10 +188,20 @@
   }
   .print-full {
     width: 100% !important;
+    max-height: none !important;
     overflow: visible !important;
   }
   body {
     background: white !important;
+    color: black !important;
+    font-size: 10px !important;
+  }
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+  .gantt-row {
+    page-break-inside: avoid;
   }
 }
 .scrollbar-thin::-webkit-scrollbar {

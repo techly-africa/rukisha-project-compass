@@ -6,11 +6,14 @@ import {
   getTaskStatus,
   todayISO,
   useProject,
+  isWorkingDay,
+  getComputedFinishDate,
+  getWorkingDaysCount,
 } from "@/lib/rukisha-store";
 import type { Section, Task, Stakeholder } from "@/lib/rukisha-types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TaskDetailModal, CreateTaskModal } from "./TaskModals";
-import { Check, UserPlus, Users, Plus, Eye } from "lucide-react";
+import { Check, UserPlus, Users, Plus, Eye, Printer, Calendar, Settings2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -254,6 +257,7 @@ function StatusBadge({ task }: { task: Task }) {
 export function GanttChart() {
   const state = useProject();
   const [frozenCount, setFrozenCount] = useState(2);
+  const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
   const scrollRef = useRef<HTMLDivElement>(null);
   const isPM = state.isSuperAdmin || state.userRole === "PM";
 
@@ -279,25 +283,34 @@ export function GanttChart() {
       date: Date;
       isMonthStart: boolean;
       isWeekend: boolean;
+      isHoliday: boolean;
       isToday: boolean;
       isGoLive: boolean;
     }[] = [];
     const today = todayISO();
+    const excludeWeekends = state.excludeWeekends ?? true;
+    const holidays = state.holidays ?? [];
+
     for (let i = 0; i < range.total; i++) {
       const iso = dateAdd(range.start, i);
       const [y, m, d] = iso.split("-").map(Number);
       const date = new Date(y, m - 1, d);
+      const dayOfWeek = date.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const isHoliday = holidays.includes(iso);
+
       arr.push({
         iso,
         date,
         isMonthStart: d === 1,
-        isWeekend: date.getDay() === 0 || date.getDay() === 6,
+        isWeekend: excludeWeekends && isWeekend,
+        isHoliday,
         isToday: iso === today,
         isGoLive: iso === state.goLiveDate,
       });
     }
     return arr;
-  }, [range, state.goLiveDate]);
+  }, [range, state.goLiveDate, state.excludeWeekends, state.holidays]);
 
   const grouped = useMemo(() => {
     return state.sections.map((sec) => ({
@@ -306,59 +319,196 @@ export function GanttChart() {
     }));
   }, [state.sections, state.tasks]);
 
+  // View Mode Column Width
+  const colWidth = viewMode === "week" ? 90 : viewMode === "month" ? 110 : DAY_W;
+
+  // Grouped timeline columns for Week / Month views
+  const timelineColumns = useMemo(() => {
+    if (viewMode === "day") {
+      return days.map((d, i) => ({
+        key: d.iso,
+        width: DAY_W,
+        title: d.isMonthStart || i === 0 ? d.date.toLocaleDateString(undefined, { month: "short" }) : "",
+        subtitle: `${d.date.getDate()}`,
+        isWeekend: d.isWeekend,
+        isHoliday: d.isHoliday,
+        isToday: d.isToday,
+        isGoLive: d.isGoLive,
+      }));
+    }
+
+    if (viewMode === "week") {
+      const weeks: {
+        key: string;
+        width: number;
+        title: string;
+        subtitle: string;
+        isWeekend?: boolean;
+        isHoliday?: boolean;
+        isToday: boolean;
+        isGoLive: boolean;
+      }[] = [];
+      for (let i = 0; i < days.length; i += 7) {
+        const chunk = days.slice(i, i + 7);
+        if (chunk.length === 0) break;
+        const first = chunk[0];
+        const last = chunk[chunk.length - 1];
+        const weekNum = Math.ceil((i + 1) / 7);
+        weeks.push({
+          key: `w-${first.iso}`,
+          width: 90,
+          title: `Week ${weekNum}`,
+          subtitle: `${first.date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}–${last.date.getDate()}`,
+          isToday: chunk.some((d) => d.isToday),
+          isGoLive: chunk.some((d) => d.isGoLive),
+        });
+      }
+      return weeks;
+    }
+
+    // Month view
+    const monthsMap = new Map<
+      string,
+      {
+        key: string;
+        width: number;
+        title: string;
+        subtitle: string;
+        isWeekend?: boolean;
+        isHoliday?: boolean;
+        isToday: boolean;
+        isGoLive: boolean;
+      }
+    >();
+    days.forEach((d) => {
+      const monthKey = d.iso.slice(0, 7);
+      if (!monthsMap.has(monthKey)) {
+        monthsMap.set(monthKey, {
+          key: monthKey,
+          width: 110,
+          title: d.date.toLocaleDateString(undefined, { month: "short", year: "numeric" }),
+          subtitle: "Month",
+          isToday: d.isToday,
+          isGoLive: d.isGoLive,
+        });
+      } else {
+        const m = monthsMap.get(monthKey)!;
+        if (d.isToday) m.isToday = true;
+        if (d.isGoLive) m.isGoLive = true;
+      }
+    });
+    return Array.from(monthsMap.values());
+  }, [days, viewMode]);
+
   useEffect(() => {
     if (scrollRef.current && days.length > 0) {
       const today = todayISO();
       const todayIdx = days.findIndex((d) => d.iso === today);
       if (todayIdx !== -1) {
-        const offset = todayIdx * DAY_W;
+        const offset = (todayIdx / (viewMode === "week" ? 7 : 1)) * colWidth;
         scrollRef.current.scrollLeft = offset;
       }
     }
-  }, [days.length, state.id]);
+  }, [days.length, state.id, viewMode, colWidth]);
 
-  const totalWidth = STICKY_W + days.length * DAY_W;
+  const totalTimelineWidth = timelineColumns.reduce((sum, c) => sum + c.width, 0);
+  const totalWidth = STICKY_W + totalTimelineWidth;
 
   return (
-    <div
-      ref={scrollRef}
-      className="overflow-auto scrollbar-thin print-full scroll-smooth"
-      style={{ maxHeight: "calc(100vh - 60px)" }}
-    >
-      <div style={{ width: totalWidth, minWidth: "100%" }}>
-        {/* Header */}
-        <div className="sticky top-0 z-20 flex border-b border-border bg-card">
-          <HeaderSticky frozenCount={frozenCount} onSetFrozenCount={setFrozenCount} />
-          <div className="relative flex">
-            {days.map((d, i) => (
-              <div
-                key={d.iso}
-                className={`flex h-14 w-8 flex-col items-center justify-center border-r border-border text-[10px] ${
-                  d.isWeekend ? "bg-muted/40" : ""
-                } ${d.isToday ? "bg-[var(--rk-danger)]/10" : ""} ${d.isGoLive ? "bg-[var(--rk-gold)]/15" : ""}`}
+    <div className="flex flex-col h-full bg-background">
+      {/* Control Bar: View Switcher & Print Button */}
+      <div className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-border no-print shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-[var(--rk-navy)] dark:text-[var(--rk-gold)]" />
+            Gantt Zoom:
+          </span>
+          <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 shadow-sm">
+            {(["day", "week", "month"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setViewMode(m)}
+                className={`px-3 py-1 text-xs font-medium rounded-md capitalize transition-all ${
+                  viewMode === m
+                    ? "bg-background text-foreground shadow-sm font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                {d.isMonthStart || i === 0 ? (
-                  <div className="font-semibold text-foreground">
-                    {d.date.toLocaleDateString(undefined, { month: "short" })}
-                  </div>
-                ) : null}
-                <div className="text-muted-foreground">{d.date.getDate()}</div>
-                {d.isGoLive && <div className="text-[var(--rk-gold)] text-sm leading-none">★</div>}
-              </div>
+                {m} View
+              </button>
             ))}
           </div>
+
+          {(state.excludeWeekends || (state.holidays?.length ?? 0) > 0) && (
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 px-2.5 py-1 rounded-md border border-border/50">
+              <span className="font-medium">Calendar:</span>
+              {state.excludeWeekends && <span className="text-foreground">Excl. Weekends</span>}
+              {state.excludeWeekends && (state.holidays?.length ?? 0) > 0 && <span>•</span>}
+              {(state.holidays?.length ?? 0) > 0 && (
+                <span className="text-foreground">{state.holidays?.length} Holidays</span>
+              )}
+            </div>
+          )}
         </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-background hover:bg-muted transition-colors shadow-sm text-foreground"
+            title="Print or export Gantt chart to PDF"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            Print / Export PDF
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={scrollRef}
+        className="overflow-auto scrollbar-thin print-full scroll-smooth flex-1"
+        style={{ maxHeight: "calc(100vh - 110px)" }}
+      >
+        <div style={{ width: totalWidth, minWidth: "100%" }}>
+          {/* Header */}
+          <div className="sticky top-0 z-20 flex border-b border-border bg-card shadow-sm">
+            <HeaderSticky frozenCount={frozenCount} onSetFrozenCount={setFrozenCount} />
+            <div className="relative flex">
+              {timelineColumns.map((col) => (
+                <div
+                  key={col.key}
+                  style={{ width: col.width }}
+                  className={`flex h-14 shrink-0 flex-col items-center justify-center border-r border-border text-[10px] ${
+                    col.isWeekend || col.isHoliday ? "bg-muted/50" : ""
+                  } ${col.isToday ? "bg-[var(--rk-danger)]/10" : ""} ${col.isGoLive ? "bg-[var(--rk-gold)]/15" : ""}`}
+                  title={col.isHoliday ? "Holiday" : col.isWeekend ? "Weekend" : undefined}
+                >
+                  {col.title && (
+                    <div className="font-semibold text-foreground truncate px-1">{col.title}</div>
+                  )}
+                  <div className="text-muted-foreground truncate px-1">{col.subtitle}</div>
+                  {col.isGoLive && <div className="text-[var(--rk-gold)] text-sm leading-none">★</div>}
+                </div>
+              ))}
+            </div>
+          </div>
 
         {/* Body */}
         {grouped.map(({ section, tasks }) => (
           <div key={section.id} className="relative">
-            <SectionRow section={section} daysCount={days.length} frozenCount={frozenCount} />
+            <SectionRow
+              section={section}
+              timelineWidth={totalTimelineWidth}
+              frozenCount={frozenCount}
+            />
             {tasks.map((task, idx) => (
               <TaskRow
                 key={task.id}
                 task={task}
                 rangeStart={range.start}
                 days={days}
+                timelineColumns={timelineColumns}
+                viewMode={viewMode}
+                timelineWidth={totalTimelineWidth}
                 rowIndex={idx}
                 isLast={idx === tasks.length - 1}
                 frozenCount={frozenCount}
@@ -369,7 +519,8 @@ export function GanttChart() {
               tasks={tasks}
               allTasks={state.tasks}
               rangeStart={range.start}
-              daysCount={days.length}
+              timelineWidth={totalTimelineWidth}
+              viewMode={viewMode}
             />
             {isPM && (
               <div
@@ -396,7 +547,7 @@ export function GanttChart() {
                   COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce((a, b) => a + b.width, 0),
               }}
             />
-            <div style={{ width: days.length * DAY_W }} />
+            <div style={{ width: totalTimelineWidth }} />
           </div>
         ))}
 
@@ -424,7 +575,8 @@ export function GanttChart() {
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 function HeaderSticky({
@@ -486,16 +638,19 @@ function DependencyOverlay({
   tasks,
   allTasks,
   rangeStart,
-  daysCount,
+  timelineWidth,
+  viewMode,
 }: {
   tasks: Task[];
   allTasks: Task[];
   rangeStart: string;
-  daysCount: number;
+  timelineWidth: number;
+  viewMode: "day" | "week" | "month";
 }) {
   if (!tasks.some((t) => (t.dependencies?.length ?? 0) > 0)) return null;
 
-  const svgW = daysCount * DAY_W;
+  const scale = viewMode === "week" ? 90 / 7 : viewMode === "month" ? 110 / 30.437 : DAY_W;
+  const svgW = timelineWidth;
   const svgH = tasks.length * ROW_H;
   const sectionRowH = 36;
 
@@ -510,8 +665,8 @@ function DependencyOverlay({
       if (fromIdx < 0) return;
 
       const fromPlanEndPixel = dateAdd(fromTask.planStart, fromTask.planDuration);
-      const fromX = Math.max(0, daysBetween(rangeStart, fromPlanEndPixel)) * DAY_W;
-      const toX = Math.max(0, daysBetween(rangeStart, task.planStart)) * DAY_W;
+      const fromX = Math.max(0, daysBetween(rangeStart, fromPlanEndPixel)) * scale;
+      const toX = Math.max(0, daysBetween(rangeStart, task.planStart)) * scale;
 
       const fromY = sectionRowH + fromIdx * ROW_H + ROW_H / 2;
       const toY = sectionRowH + toIdx * ROW_H + ROW_H / 2;
@@ -579,11 +734,11 @@ function DependencyOverlay({
 
 function SectionRow({
   section,
-  daysCount,
+  timelineWidth,
   frozenCount,
 }: {
   section: Section;
-  daysCount: number;
+  timelineWidth: number;
   frozenCount: number;
 }) {
   const state = useProject();
@@ -648,7 +803,7 @@ function SectionRow({
           </div>
         );
       })}
-      <div style={{ width: daysCount * DAY_W }} className="bg-[var(--rk-light)]/50" />
+      <div style={{ width: timelineWidth }} className="bg-[var(--rk-light)]/50" />
     </div>
   );
 }
@@ -659,13 +814,19 @@ function TaskRow({
   task,
   rangeStart,
   days,
+  timelineColumns,
+  viewMode,
+  timelineWidth,
   isLast,
   rowIndex: _rowIndex,
   frozenCount,
 }: {
   task: Task;
   rangeStart: string;
-  days: { iso: string; isWeekend: boolean; isToday: boolean; isGoLive: boolean }[];
+  days: { iso: string; isWeekend: boolean; isHoliday: boolean; isToday: boolean; isGoLive: boolean }[];
+  timelineColumns: { key: string; width: number; title?: string; subtitle?: string; isWeekend?: boolean; isHoliday?: boolean; isToday?: boolean; isGoLive?: boolean }[];
+  viewMode: "day" | "week" | "month";
+  timelineWidth: number;
   isLast: boolean;
   rowIndex: number;
   frozenCount: number;
@@ -675,12 +836,19 @@ function TaskRow({
   const isStaff = state.isSuperAdmin || state.userRole === "PM" || state.userRole === "Staff";
   const today = todayISO();
 
-  const planStartDay = daysBetween(rangeStart, task.planStart);
-  const planLeft = Math.max(0, planStartDay * DAY_W);
-  const planWidth = Math.max(DAY_W, task.planDuration * DAY_W);
+  const scale = viewMode === "week" ? 90 / 7 : viewMode === "month" ? 110 / 30.437 : DAY_W;
 
-  // Inclusive Plan Finish Date for display (Start + Dur - 1)
-  const planFinish = dateAdd(task.planStart, Math.max(0, task.planDuration - 1));
+  const planStartDay = daysBetween(rangeStart, task.planStart);
+  const planLeft = Math.max(0, planStartDay * scale);
+  const planWidth = Math.max(scale, task.planDuration * scale);
+
+  // Inclusive Plan Finish Date for display (accounting for working days/holidays)
+  const planFinish = getComputedFinishDate(
+    task.planStart,
+    task.planDuration,
+    state.excludeWeekends,
+    state.holidays,
+  );
 
   // Inclusive Actual Finish Date for display
   const actualFinish = task.actualStart
@@ -688,11 +856,11 @@ function TaskRow({
     : "";
 
   const actualLeft = task.actualStart
-    ? Math.max(0, daysBetween(rangeStart, task.actualStart) * DAY_W)
+    ? Math.max(0, daysBetween(rangeStart, task.actualStart) * scale)
     : planLeft;
 
   const effectiveDur = task.actualDuration || task.planDuration;
-  const actualWidth = Math.max(DAY_W, effectiveDur * DAY_W);
+  const actualWidth = Math.max(scale, effectiveDur * scale);
 
   const isComplete = task.percentComplete >= 100;
   const isProgressing = task.percentComplete > 0 && !isComplete;
@@ -814,11 +982,14 @@ function TaskRow({
                 value={planFinish}
                 onChange={(v) => {
                   if (v) {
-                    const newDur = Math.max(1, daysBetween(task.planStart, v) + 1);
+                    const newDur = Math.max(
+                      1,
+                      getWorkingDaysCount(task.planStart, v, state.excludeWeekends, state.holidays),
+                    );
                     actions.updateTask(task.id, { planDuration: newDur });
                   }
                 }}
-                className="text-xs"
+                className="text-xs font-medium"
                 disabled={!isPM}
               />
             </div>
@@ -946,13 +1117,16 @@ function TaskRow({
       })}
 
       {/* Timeline */}
-      <div className="relative" style={{ width: days.length * DAY_W, height: 44 }}>
-        {/* day backgrounds */}
+      <div className="relative" style={{ width: timelineWidth, height: 44 }}>
+        {/* column backgrounds */}
         <div className="absolute inset-0 flex">
-          {days.map((d) => (
+          {timelineColumns.map((col) => (
             <div
-              key={d.iso}
-              className={`w-8 border-r border-border ${d.isWeekend ? "bg-muted/30" : ""} ${d.isToday ? "bg-[var(--rk-danger)]/8" : ""} ${d.isGoLive ? "bg-[var(--rk-gold)]/15" : ""}`}
+              key={col.key}
+              style={{ width: col.width }}
+              className={`shrink-0 border-r border-border ${
+                col.isWeekend || col.isHoliday ? "bg-muted/40" : ""
+              } ${col.isToday ? "bg-[var(--rk-danger)]/8" : ""} ${col.isGoLive ? "bg-[var(--rk-gold)]/15" : ""}`}
             />
           ))}
         </div>
@@ -996,8 +1170,8 @@ function TaskRow({
         {/* today line */}
         {days.some((d) => d.isToday) && (
           <div
-            className="absolute top-0 bottom-0 w-px bg-[var(--rk-danger)]"
-            style={{ left: daysBetween(rangeStart, today) * DAY_W + DAY_W / 2 }}
+            className="absolute top-0 bottom-0 w-px bg-[var(--rk-danger)] z-10 pointer-events-none"
+            style={{ left: daysBetween(rangeStart, today) * scale + scale / 2 }}
           />
         )}
       </div>

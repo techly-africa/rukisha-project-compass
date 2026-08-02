@@ -319,6 +319,8 @@ async function loadAll(id?: string) {
             ? "Staff"
             : (teamMember as any).role,
         isSuperAdmin,
+        excludeWeekends: project.exclude_weekends ?? true,
+        holidays: project.holidays ?? [],
       };
 
       projectCache.set(project.id, newState);
@@ -1163,6 +1165,26 @@ export const actions = {
     toast.success("User permission override saved.");
     return true;
   },
+
+  /** Update project calendar configuration (exclude weekends & holidays) */
+  async updateCalendarConfig(excludeWeekends: boolean, holidays: string[]) {
+    if (!projectId) return false;
+    setState((s) => ({ ...s, excludeWeekends, holidays }));
+    const { error } = await (supabase as any)
+      .from("rk_project")
+      .update({
+        exclude_weekends: excludeWeekends,
+        holidays,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", projectId);
+    if (error) {
+      toast.error("Failed to update calendar configuration.");
+      return false;
+    }
+    toast.success("Calendar configuration saved.");
+    return true;
+  },
 };
 
 
@@ -1180,6 +1202,63 @@ export function dateAdd(iso: string, days: number): string {
   if (isNaN(d.getTime())) return iso;
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+export function isWorkingDay(iso: string, excludeWeekends = true, holidays: string[] = []): boolean {
+  if (!iso || iso.length < 10) return true;
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return true;
+  const dayOfWeek = d.getDay();
+  if (excludeWeekends && (dayOfWeek === 0 || dayOfWeek === 6)) return false;
+  if (holidays && holidays.includes(iso)) return false;
+  return true;
+}
+
+export function addWorkingDays(
+  startISO: string,
+  days: number,
+  excludeWeekends = true,
+  holidays: string[] = [],
+): string {
+  if (!startISO || startISO.length < 10) return startISO;
+  let curr = startISO;
+  let added = 0;
+  // If target days is 0 or 1, ensure start date itself is valid
+  while (days > 0 && added < days) {
+    curr = dateAdd(curr, 1);
+    if (isWorkingDay(curr, excludeWeekends, holidays)) {
+      added++;
+    }
+  }
+  return curr;
+}
+
+export function getComputedFinishDate(
+  startISO: string,
+  duration: number,
+  excludeWeekends = true,
+  holidays: string[] = [],
+): string {
+  if (!startISO || startISO.length < 10) return startISO;
+  const dur = Math.max(1, duration);
+  // A 1-day task starting on Monday finishes on Monday (0 working days added)
+  return addWorkingDays(startISO, dur - 1, excludeWeekends, holidays);
+}
+
+export function getWorkingDaysCount(
+  startISO: string,
+  endISO: string,
+  excludeWeekends = true,
+  holidays: string[] = [],
+): number {
+  if (!startISO || !endISO || startISO > endISO) return 0;
+  let count = 0;
+  let curr = startISO;
+  while (curr <= endISO) {
+    if (isWorkingDay(curr, excludeWeekends, holidays)) count++;
+    curr = dateAdd(curr, 1);
+  }
+  return count;
 }
 
 export function daysBetween(a: string, b: string): number {

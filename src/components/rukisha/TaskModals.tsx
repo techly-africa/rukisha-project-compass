@@ -5,6 +5,7 @@ import {
   getTaskStatus,
   todayISO,
   useProject,
+  getComputedFinishDate,
 } from "@/lib/rukisha-store";
 import type { Task, TaskComment, TaskAttachment } from "@/lib/rukisha-types";
 import {
@@ -190,6 +191,13 @@ export function CreateTaskModal({
                 value={planDuration}
                 onChange={(e) => setPlanDuration(Number(e.target.value))}
               />
+            </div>
+
+            <div className="col-span-2 rounded-md bg-muted/40 px-3 py-1.5 border border-border/60 text-xs flex items-center justify-between">
+              <span className="text-muted-foreground font-medium">Computed Finish Date:</span>
+              <span className="font-semibold text-foreground">
+                {getComputedFinishDate(planStart, planDuration, state.excludeWeekends, state.holidays)}
+              </span>
             </div>
           </div>
 
@@ -507,6 +515,13 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
                   onChange={(e) => setActualDuration(Number(e.target.value))}
                   className="h-8 text-xs"
                 />
+              </div>
+
+              <div className="col-span-2 md:col-span-4 rounded-md bg-muted/50 px-3 py-1.5 border border-border/60 text-xs flex items-center justify-between">
+                <span className="text-muted-foreground font-medium">Computed Plan Finish Date:</span>
+                <span className="font-semibold text-foreground font-mono">
+                  {getComputedFinishDate(planStart, planDuration, state.excludeWeekends, state.holidays)}
+                </span>
               </div>
             </div>
 

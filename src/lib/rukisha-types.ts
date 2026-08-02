@@ -106,6 +106,8 @@ export interface ProjectInfo {
   updatedAt: string;
   isArchived?: boolean;
   progress: number;
+  excludeWeekends?: boolean;
+  holidays?: string[];
 }
 
 export interface ProjectState {
@@ -121,4 +123,7 @@ export interface ProjectState {
   userEmail: string | null;
   userRole?: string | null;
   isSuperAdmin: boolean;
+  excludeWeekends?: boolean;
+  holidays?: string[];
 }
+

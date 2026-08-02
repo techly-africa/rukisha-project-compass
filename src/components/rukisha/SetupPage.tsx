@@ -72,6 +72,9 @@ export function SetupPage() {
   const [projectId, setProjectId] = useState<string | null>(state.id);
   const [projectName, setProjectName] = useState(state.projectName);
   const [goLiveDate, setGoLiveDate] = useState(state.goLiveDate);
+  const [excludeWeekends, setExcludeWeekends] = useState(state.excludeWeekends ?? true);
+  const [holidays, setHolidays] = useState<string[]>(state.holidays ?? []);
+  const [newHolidayDate, setNewHolidayDate] = useState("");
   const [team, setTeam] = useState<TeamRow[]>([]);
   const [stakeholders, setStakeholders] = useState<StakeholderRow[]>(
     state.stakeholders.length > 0
@@ -88,6 +91,8 @@ export function SetupPage() {
       setProjectId(state.id);
       setProjectName(state.projectName);
       setGoLiveDate(state.goLiveDate);
+      setExcludeWeekends(state.excludeWeekends ?? true);
+      setHolidays(state.holidays ?? []);
       setStakeholders(
         state.stakeholders.length > 0
           ? state.stakeholders.map((s) => ({ id: s.id, name: s.name, role: s.role }))
@@ -97,7 +102,7 @@ export function SetupPage() {
     } else {
       setLoading(false);
     }
-  }, [state.id]);
+  }, [state.id, state.excludeWeekends, state.holidays]);
 
   async function loadTeam(id: string) {
     const { data } = await supabase.from("rk_team").select("*").eq("project_id", id);
@@ -161,7 +166,12 @@ export function SetupPage() {
       if (!pid) {
         const { data, error: createErr } = await supabase
           .from("rk_project")
-          .insert({ name: projectName, go_live_date: goLiveDate })
+          .insert({
+            name: projectName,
+            go_live_date: goLiveDate,
+            exclude_weekends: excludeWeekends,
+            holidays: holidays,
+          })
           .select()
           .single();
         if (createErr || !data) throw new Error("Failed to create project");
@@ -173,6 +183,8 @@ export function SetupPage() {
           .update({
             name: projectName,
             go_live_date: goLiveDate,
+            exclude_weekends: excludeWeekends,
+            holidays: holidays,
             updated_at: new Date().toISOString(),
           })
           .eq("id", pid);
@@ -326,6 +338,78 @@ export function SetupPage() {
                   required
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
+              </div>
+            </div>
+          </section>
+
+          {/* Calendar & Working Days */}
+          <section className="space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Working Days & Calendar Schedule
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Configure active working days and custom project holidays. End dates and task durations will skip non-working days.
+            </p>
+            <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={excludeWeekends}
+                  onChange={(e) => setExcludeWeekends(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-[var(--rk-navy)] focus:ring-[var(--rk-navy)]"
+                />
+                <div>
+                  <div className="text-sm font-medium">Exclude Weekends (Saturdays & Sundays)</div>
+                  <div className="text-xs text-muted-foreground">
+                    Automatically skip weekends when computing task schedules and durations.
+                  </div>
+                </div>
+              </label>
+
+              <div className="border-t border-border pt-4 space-y-3">
+                <div className="text-sm font-medium">Project Holidays</div>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={newHolidayDate}
+                    onChange={(e) => setNewHolidayDate(e.target.value)}
+                    className="rounded-md border border-border bg-background px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newHolidayDate && !holidays.includes(newHolidayDate)) {
+                        setHolidays([...holidays, newHolidayDate]);
+                        setNewHolidayDate("");
+                      }
+                    }}
+                    disabled={!newHolidayDate}
+                    className="px-3 py-1.5 rounded-md bg-[var(--rk-navy)] text-white text-xs font-medium hover:opacity-90 transition disabled:opacity-40"
+                  >
+                    Add Holiday
+                  </button>
+                </div>
+
+                {holidays.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {holidays.map((h) => (
+                      <span
+                        key={h}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs font-medium text-foreground"
+                      >
+                        📅 {h}
+                        <button
+                          type="button"
+                          onClick={() => setHolidays(holidays.filter((date) => date !== h))}
+                          className="text-muted-foreground hover:text-red-500 transition-colors"
+                          title="Remove holiday"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </section>

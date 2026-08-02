@@ -171,6 +171,8 @@ async function run() {
       ON CONFLICT (id) DO UPDATE SET name = 'Rukisha Solutions Rwanda' WHERE public.rk_organizations.name = 'Rukisha Africa' OR public.rk_organizations.name = 'My Organization';
 
       ALTER TABLE public.rk_project ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES public.rk_organizations(id);
+      ALTER TABLE public.rk_project ADD COLUMN IF NOT EXISTS exclude_weekends boolean DEFAULT true NOT NULL;
+      ALTER TABLE public.rk_project ADD COLUMN IF NOT EXISTS holidays text[] DEFAULT '{}'::text[] NOT NULL;
       UPDATE public.rk_project SET org_id = '00000000-0000-0000-0000-000000000001' WHERE org_id IS NULL;
 
       CREATE TABLE IF NOT EXISTS public.rk_org_members (
