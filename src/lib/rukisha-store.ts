@@ -185,6 +185,9 @@ async function loadAll(id?: string) {
 
     if (listErr) {
       console.error("Discovery failed:", listErr);
+      setState((s) => ({ ...s, userProjects: [], id: null, userEmail, isSuperAdmin }));
+      loaded = true;
+      emit();
       return;
     }
 
@@ -204,7 +207,7 @@ async function loadAll(id?: string) {
       .maybeSingle();
     isSuperAdmin = !!adminData;
 
-    if (projectList.length === 0 && !listErr) {
+    if (projectList.length === 0) {
       setState((s) => ({ ...s, userProjects: [], id: null, userEmail, isSuperAdmin }));
       loaded = true;
       emit();
@@ -221,7 +224,9 @@ async function loadAll(id?: string) {
     }
 
     if (!targetId) {
-      setState((s) => ({ ...s, userProjects: projectList }));
+      setState((s) => ({ ...s, userProjects: projectList, id: null, userEmail, isSuperAdmin }));
+      loaded = true;
+      emit();
       return;
     }
 
@@ -234,91 +239,98 @@ async function loadAll(id?: string) {
       emit();
     }
 
-    const [
-      { data: project },
-      { data: sections },
-      { data: tasks },
-      { data: stakeholders },
-      { data: teamMember },
-      { data: allTeamMembers },
-    ] = await Promise.all([
-      supabase.from("rk_project").select("*").eq("id", targetId).maybeSingle(),
-      supabase.from("rk_sections").select("*").eq("project_id", targetId).order("position"),
-      supabase.from("rk_tasks").select("*").eq("project_id", targetId).order("position"),
-      supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
-      supabase
-        .from("rk_team")
-        .select("role")
-        .eq("project_id", targetId)
-        .eq("email", userEmail)
-        .maybeSingle(),
-      supabase.from("rk_team").select("id, email, name").eq("project_id", targetId).order("name"),
-    ]);
-
-    let subtasks: any[] = [];
-    let dependencies: any[] = [];
-    let comments: any[] = [];
-    let attachments: any[] = [];
-    if (tasks && tasks.length > 0) {
-      const taskIds = tasks.map((t: DbTask) => t.id);
-      const [stRes, depsRes, commRes, attRes] = await Promise.all([
-        supabase.from("rk_subtasks").select("*").in("task_id", taskIds),
-        supabase.from("rk_task_dependencies").select("*").in("task_id", taskIds),
-        (supabase as any).from("rk_task_comments").select("*").in("task_id", taskIds).order("created_at"),
-        (supabase as any).from("rk_task_attachments").select("*").in("task_id", taskIds).order("created_at"),
+    try {
+      const [
+        { data: project },
+        { data: sections },
+        { data: tasks },
+        { data: stakeholders },
+        { data: teamMember },
+        { data: allTeamMembers },
+      ] = await Promise.all([
+        supabase.from("rk_project").select("*").eq("id", targetId).maybeSingle(),
+        supabase.from("rk_sections").select("*").eq("project_id", targetId).order("position"),
+        supabase.from("rk_tasks").select("*").eq("project_id", targetId).order("position"),
+        supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
+        supabase
+          .from("rk_team")
+          .select("role")
+          .eq("project_id", targetId)
+          .eq("email", userEmail)
+          .maybeSingle(),
+        supabase.from("rk_team").select("id, email, name").eq("project_id", targetId).order("name"),
       ]);
-      subtasks = stRes.data || [];
-      dependencies = depsRes.data || [];
-      comments = commRes.data || [];
-      attachments = attRes.data || [];
-    }
 
-    if (!project) {
-      setState((s) => ({ ...s, id: null, userProjects: projectList, userEmail, isSuperAdmin }));
+      let subtasks: any[] = [];
+      let dependencies: any[] = [];
+      let comments: any[] = [];
+      let attachments: any[] = [];
+      if (tasks && tasks.length > 0) {
+        const taskIds = tasks.map((t: DbTask) => t.id);
+        const [stRes, depsRes, commRes, attRes] = await Promise.all([
+          supabase.from("rk_subtasks").select("*").in("task_id", taskIds),
+          supabase.from("rk_task_dependencies").select("*").in("task_id", taskIds),
+          (supabase as any).from("rk_task_comments").select("*").in("task_id", taskIds).order("created_at"),
+          (supabase as any).from("rk_task_attachments").select("*").in("task_id", taskIds).order("created_at"),
+        ]);
+        subtasks = stRes.data || [];
+        dependencies = depsRes.data || [];
+        comments = commRes.data || [];
+        attachments = attRes.data || [];
+      }
+
+      if (!project) {
+        setState((s) => ({ ...s, id: null, userProjects: projectList, userEmail, isSuperAdmin }));
+        loaded = true;
+        emit();
+        return;
+      }
+
+      const localDark =
+        typeof window !== "undefined" ? localStorage.getItem("rk-dark") === "1" : false;
+
+      const newState: ProjectState = {
+        id: project.id,
+        projectName: project.name,
+        goLiveDate: project.go_live_date,
+        stakeholders: (stakeholders || []).map(mapStakeholder),
+        sections: (sections || []).map(mapSection),
+        tasks: (tasks || []).map((t: DbTask) =>
+          mapTask(
+            t,
+            (subtasks || []).filter((st: any) => st.task_id === t.id),
+            (dependencies || [])
+              .filter((d: any) => d.task_id === t.id)
+              .map((d: any) => d.depends_on_task_id),
+            (comments || []).filter((c: any) => c.task_id === t.id),
+            (attachments || []).filter((a: any) => a.task_id === t.id),
+          ),
+        ),
+        teamMembers: (allTeamMembers || []).map((m: any) => ({
+          id: m.id,
+          email: m.email,
+          name: m.name || m.email,
+        })),
+        darkMode: localDark,
+        userProjects: projectList,
+        userEmail,
+        userRole:
+          !(teamMember as any)?.role || (teamMember as any)?.role === "Member"
+            ? "Staff"
+            : (teamMember as any).role,
+        isSuperAdmin,
+      };
+
+      projectCache.set(project.id, newState);
+      state = newState;
       loaded = true;
       emit();
-      return;
+    } catch (err) {
+      console.error("Failed to load project details:", err);
+      setState((s) => ({ ...s, userProjects: projectList, userEmail, isSuperAdmin }));
+      loaded = true;
+      emit();
     }
-
-    const localDark =
-      typeof window !== "undefined" ? localStorage.getItem("rk-dark") === "1" : false;
-
-    const newState: ProjectState = {
-      id: project.id,
-      projectName: project.name,
-      goLiveDate: project.go_live_date,
-      stakeholders: (stakeholders || []).map(mapStakeholder),
-      sections: (sections || []).map(mapSection),
-      tasks: (tasks || []).map((t: DbTask) =>
-        mapTask(
-          t,
-          (subtasks || []).filter((st: any) => st.task_id === t.id),
-          (dependencies || [])
-            .filter((d: any) => d.task_id === t.id)
-            .map((d: any) => d.depends_on_task_id),
-          (comments || []).filter((c: any) => c.task_id === t.id),
-          (attachments || []).filter((a: any) => a.task_id === t.id),
-        ),
-      ),
-      teamMembers: (allTeamMembers || []).map((m: any) => ({
-        id: m.id,
-        email: m.email,
-        name: m.name || m.email,
-      })),
-      darkMode: localDark,
-      userProjects: projectList,
-      userEmail,
-      userRole:
-        !(teamMember as any)?.role || (teamMember as any)?.role === "Member"
-          ? "Staff"
-          : (teamMember as any).role,
-      isSuperAdmin,
-    };
-
-    projectCache.set(project.id, newState);
-    state = newState;
-    loaded = true;
-    emit();
   })().finally(() => {
     loadingPromise = null;
   });
