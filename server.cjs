@@ -14,8 +14,8 @@ app.use(express.json({ limit: "50mb" })); // support large file uploads as base6
 const fs = require("fs");
 let connectionString = process.env.DATABASE_URL;
 
-// Auto-correct local DB URL to Docker DB host in production containers
-if ((fs.existsSync("/.dockerenv") || process.platform !== "darwin") && connectionString && (connectionString.includes("localhost:5433") || connectionString.includes("127.0.0.1:5433"))) {
+// Auto-correct local DB URL to Docker DB host in docker-compose environment
+if (fs.existsSync("/.dockerenv") && connectionString && (connectionString.includes("localhost:5433") || connectionString.includes("127.0.0.1:5433"))) {
   console.log("Rewriting localhost:5433 database URL to internal Docker service db:5432");
   connectionString = connectionString.replace("localhost:5433", "db:5432").replace("127.0.0.1:5433", "db:5432");
 }
@@ -605,8 +605,18 @@ app.use((req, res, next) => {
   if (req.method !== "GET") return next();
   // Don't intercept API or storage routes
   if (req.path.startsWith("/api/") || req.path.startsWith("/storage/")) return next();
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
+  
+  const indexPath = path.join(__dirname, "dist", "index.html");
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error(`[SPA Catch-all Error] Failed to send ${indexPath}:`, err);
+      if (!res.headersSent) {
+        res.status(500).send("Server Error: Unable to load application bundle");
+      }
+    }
+  });
 });
+
 
 
 // Start server

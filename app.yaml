@@ -3,7 +3,7 @@ services:
   - name: rukisha-project-compass
     build_command: npm run build
     run_command: npm run start
-    http_port: 8080
+    http_port: 3000
     envs:
       - key: DATABASE_URL
         scope: RUN_TIME

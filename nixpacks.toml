@@ -5,10 +5,11 @@
 NODE_ENV = "production"
 
 [phases.setup]
-nixPkgs = ["...", "nodejs_22"]
+nixPkgs = ["nodejs_22"]
 
 [phases.build]
 cmds = ["npm run build"]
 
 [start]
-cmd = "node server.cjs"
+cmd = "node migrate.cjs && node server.cjs"
+
