@@ -80,11 +80,6 @@ function ownerColor(name: string): string {
   return `oklch(0.7 0.12 ${h})`;
 }
 
-function formatShort(iso: string): string {
-  const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
 function EditableCell({
   value,
   onChange,
@@ -198,60 +193,31 @@ function OwnerCell({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="start">
-        {teamMembers.length > 0 && (
-          <div className="space-y-1 mb-2">
-            <div className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
-              Team Members
-            </div>
-            {teamMembers.map((m) => (
+        <div className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
+          Team Members & Stakeholders
+        </div>
+        <div className="space-y-1 max-h-48 overflow-y-auto">
+          {teamMembers.map((m) => {
+            const isSelected = selectedNames.includes(m.name);
+            return (
               <button
                 key={m.id}
                 onClick={() => !disabled && toggle(m.name)}
                 className="flex w-full items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors text-left"
               >
                 <div
-                  className={`h-4 w-4 rounded border flex items-center justify-center ${selectedNames.includes(m.name) ? "bg-[var(--rk-navy)] border-[var(--rk-navy)] text-white" : "border-border"}`}
+                  className={`flex h-4 w-4 items-center justify-center rounded border ${
+                    isSelected ? "bg-[var(--rk-navy)] border-[var(--rk-navy)] text-white" : "border-muted-foreground/30"
+                  }`}
                 >
-                  {selectedNames.includes(m.name) && <Check className="h-3 w-3" />}
+                  {isSelected && <Check className="h-3 w-3" />}
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium">{m.name}</div>
-                  <div className="text-[10px] text-muted-foreground">{m.email}</div>
-                </div>
+                <span className="font-medium text-foreground/80">{m.name}</span>
               </button>
-            ))}
-          </div>
-        )}
-        {stakeholders.length > 0 && (
-          <div className="space-y-1 mb-2">
-            <div className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
-              Stakeholders
-            </div>
-            {stakeholders.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => !disabled && toggle(s.name)}
-                className="flex w-full items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors text-left"
-              >
-                <div
-                  className={`h-4 w-4 rounded border flex items-center justify-center ${selectedNames.includes(s.name) ? "bg-[var(--rk-navy)] border-[var(--rk-navy)] text-white" : "border-border"}`}
-                >
-                  {selectedNames.includes(s.name) && <Check className="h-3 w-3" />}
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">{s.name}</div>
-                  <div className="text-[10px] text-muted-foreground">{s.role}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-        {teamMembers.length === 0 && stakeholders.length === 0 && (
-          <div className="text-[11px] text-muted-foreground px-2 py-2">
-            No team members or stakeholders defined in setup.
-          </div>
-        )}
-        <div className="border-t border-border pt-2">
+            );
+          })}
+        </div>
+        <div className="border-t border-border pt-2 mt-2">
           <EditableCell
             value={value}
             onChange={onChange}
@@ -278,9 +244,7 @@ function StatusBadge({ task }: { task: Task }) {
     danger: "bg-[var(--rk-danger)]/15 text-[var(--rk-danger)]",
   }[s.tone];
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${tone}`}
-    >
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${tone}`}>
       {s.label}
     </span>
   );
@@ -291,15 +255,20 @@ export function GanttChart() {
   const [frozenCount, setFrozenCount] = useState(2);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isPM = state.isSuperAdmin || state.userRole === "PM";
-  const isStaff = state.isSuperAdmin || state.userRole === "PM" || state.userRole === "Staff";
 
   const range = useMemo(() => {
-    const dates = state.tasks.flatMap((t) => [t.planStart, dateAdd(t.planStart, t.planDuration)]);
+    const dates = state.tasks.flatMap((t) => [
+      t.planStart,
+      dateAdd(t.planStart, Math.max(0, t.planDuration - 1)),
+    ]);
     dates.push(state.goLiveDate, todayISO());
-    const sorted = dates.sort();
-    const start = dateAdd(sorted[0] ?? todayISO(), -3);
-    const end = dateAdd(sorted[sorted.length - 1] ?? todayISO(), 5);
-    const total = Math.max(daysBetween(start, end), 30);
+    const sorted = dates.filter(Boolean).sort();
+    const minDate = sorted[0] || todayISO();
+    const maxDate = sorted[sorted.length - 1] || todayISO();
+
+    const start = dateAdd(minDate, -3);
+    const end = dateAdd(maxDate, 7);
+    const total = Math.max(daysBetween(start, end) + 1, 30);
     return { start, end, total };
   }, [state.tasks, state.goLiveDate]);
 
@@ -315,11 +284,12 @@ export function GanttChart() {
     const today = todayISO();
     for (let i = 0; i < range.total; i++) {
       const iso = dateAdd(range.start, i);
-      const date = new Date(iso + "T00:00:00");
+      const [y, m, d] = iso.split("-").map(Number);
+      const date = new Date(y, m - 1, d);
       arr.push({
         iso,
         date,
-        isMonthStart: date.getDate() === 1,
+        isMonthStart: d === 1,
         isWeekend: date.getDay() === 0 || date.getDay() === 6,
         isToday: iso === today,
         isGoLive: iso === state.goLiveDate,
@@ -340,12 +310,11 @@ export function GanttChart() {
       const today = todayISO();
       const todayIdx = days.findIndex((d) => d.iso === today);
       if (todayIdx !== -1) {
-        // Scroll so today is visible after the frozen columns
         const offset = todayIdx * DAY_W;
         scrollRef.current.scrollLeft = offset;
       }
     }
-  }, [days.length, state.id]); // Re-scroll when project changes or range updates
+  }, [days.length, state.id]);
 
   const totalWidth = STICKY_W + days.length * DAY_W;
 
@@ -512,10 +481,6 @@ function HeaderSticky({
   );
 }
 
-/**
- * Renders finish-to-start dependency arrows as an SVG overlay over the timeline area.
- * Positioned absolutely over the section's task rows (left = STICKY_W).
- */
 function DependencyOverlay({
   tasks,
   allTasks,
@@ -531,8 +496,7 @@ function DependencyOverlay({
 
   const svgW = daysCount * DAY_W;
   const svgH = tasks.length * ROW_H;
-  // +1px to start at vertical center of the first SectionRow (ROW_H offset)
-  const sectionRowH = 36; // SectionRow uses py-2 ~ 36px
+  const sectionRowH = 36;
 
   const arrows: React.ReactNode[] = [];
 
@@ -542,28 +506,24 @@ function DependencyOverlay({
       const fromTask = tasks.find((t) => t.id === depId) ?? allTasks.find((t) => t.id === depId);
       if (!fromTask) return;
       const fromIdx = tasks.indexOf(fromTask);
-      if (fromIdx < 0) return; // cross-section dep — skip for now
+      if (fromIdx < 0) return;
 
-      // X: right edge of fromTask's plan bar → left edge of toTask's plan bar
-      const fromPlanEnd = dateAdd(fromTask.planStart, fromTask.planDuration);
-      const fromX = Math.max(0, daysBetween(rangeStart, fromPlanEnd)) * DAY_W;
+      const fromPlanEndPixel = dateAdd(fromTask.planStart, fromTask.planDuration);
+      const fromX = Math.max(0, daysBetween(rangeStart, fromPlanEndPixel)) * DAY_W;
       const toX = Math.max(0, daysBetween(rangeStart, task.planStart)) * DAY_W;
 
-      // Y: vertical center of each row (within the section body, not counting the SectionRow header)
       const fromY = sectionRowH + fromIdx * ROW_H + ROW_H / 2;
       const toY = sectionRowH + toIdx * ROW_H + ROW_H / 2;
 
-      // Detect schedule violation: dep ends after task starts
-      const isViolation = fromPlanEnd > task.planStart;
+      const fromPlanFinish = dateAdd(fromTask.planStart, Math.max(0, fromTask.planDuration - 1));
+      const isViolation = fromPlanFinish > task.planStart;
       const color = isViolation ? "var(--rk-danger)" : "#94a3b8";
 
-      // Elbow path: right → bend down → left → arrowhead
       const midX = fromX + Math.abs(toX - fromX) * 0.5;
       const arrowSize = 5;
       const key = `${fromTask.id}->${task.id}`;
 
       if (fromY === toY) {
-        // Same row (shouldn't normally happen, but safety)
         arrows.push(
           <g key={key}>
             <path
@@ -582,7 +542,6 @@ function DependencyOverlay({
           </g>,
         );
       } else {
-        // Standard F-to-S elbow
         arrows.push(
           <g key={key}>
             <path
@@ -634,7 +593,6 @@ function SectionRow({
       {COLUMN_CONFIG.map((c, i) => {
         const isSticky = i < frozenCount;
         const leftOffset = COLUMN_CONFIG.slice(0, i).reduce((sum, col) => sum + col.width, 0);
-        const isRightmostFrozen = i === frozenCount - 1;
 
         return (
           <div
@@ -696,7 +654,6 @@ function SectionRow({
 
 export { TaskDetailModal, CreateTaskModal } from "./TaskModals";
 
-
 function TaskRow({
   task,
   rangeStart,
@@ -718,25 +675,27 @@ function TaskRow({
   const today = todayISO();
 
   const planStartDay = daysBetween(rangeStart, task.planStart);
-  // Guard against negative offsets (task starts before range window, e.g. date timezone shift)
   const planLeft = Math.max(0, planStartDay * DAY_W);
   const planWidth = Math.max(DAY_W, task.planDuration * DAY_W);
+
+  // Inclusive Plan Finish Date for display (Start + Dur - 1)
+  const planFinish = dateAdd(task.planStart, Math.max(0, task.planDuration - 1));
+
+  // Inclusive Actual Finish Date for display
+  const actualFinish = task.actualStart
+    ? dateAdd(task.actualStart, Math.max(0, (task.actualDuration || task.planDuration) - 1))
+    : "";
 
   const actualLeft = task.actualStart
     ? Math.max(0, daysBetween(rangeStart, task.actualStart) * DAY_W)
     : planLeft;
 
-  // Calculate effective actual duration:
-  // Use actualDuration if set (from Actual Finish in UI), otherwise fallback to planDuration.
   const effectiveDur = task.actualDuration || task.planDuration;
   const actualWidth = Math.max(DAY_W, effectiveDur * DAY_W);
 
-  // Determine actual bar color
-  const planEnd = dateAdd(task.planStart, task.planDuration);
-  const actualEnd = task.actualStart ? dateAdd(task.actualStart, task.actualDuration) : "";
   const isComplete = task.percentComplete >= 100;
   const isProgressing = task.percentComplete > 0 && !isComplete;
-  const isOverrun = today > planEnd && !isComplete;
+  const isOverrun = today > planFinish && !isComplete;
 
   let barColor = "var(--rk-bar-progress)";
   if (isComplete) barColor = "var(--rk-bar-done)";
@@ -851,10 +810,12 @@ function TaskRow({
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
               <EditableCell
                 type="date"
-                value={planEnd}
+                value={planFinish}
                 onChange={(v) => {
-                  const newDur = Math.max(1, daysBetween(task.planStart, v));
-                  actions.updateTask(task.id, { planDuration: newDur });
+                  if (v) {
+                    const newDur = Math.max(1, daysBetween(task.planStart, v) + 1);
+                    actions.updateTask(task.id, { planDuration: newDur });
+                  }
                 }}
                 className="text-xs"
                 disabled={!isPM}
@@ -886,8 +847,8 @@ function TaskRow({
                 type="date"
                 value={task.actualStart ?? ""}
                 onChange={(v) => {
-                  if (v && actualEnd) {
-                    const newDur = Math.max(0, daysBetween(v, actualEnd));
+                  if (v && actualFinish) {
+                    const newDur = Math.max(1, daysBetween(v, actualFinish) + 1);
                     actions.updateTask(task.id, { actualStart: v, actualDuration: newDur });
                   } else {
                     actions.updateTask(task.id, { actualStart: v || null });
@@ -905,14 +866,16 @@ function TaskRow({
             <div key={c.label} {...cellProps} className={`${cellProps.className} px-1`}>
               <EditableCell
                 type="date"
-                value={actualEnd}
+                value={actualFinish}
                 onChange={(v) => {
-                  const start = task.actualStart || task.planStart;
-                  const newDur = Math.max(0, daysBetween(start, v));
-                  actions.updateTask(task.id, {
-                    actualStart: start,
-                    actualDuration: newDur,
-                  });
+                  if (v) {
+                    const start = task.actualStart || task.planStart;
+                    const newDur = Math.max(1, daysBetween(start, v) + 1);
+                    actions.updateTask(task.id, {
+                      actualStart: start,
+                      actualDuration: newDur,
+                    });
+                  }
                 }}
                 className="text-xs"
                 disabled={!isStaff}
@@ -947,15 +910,13 @@ function TaskRow({
                   const pct = Math.min(100, Math.max(0, parseInt(v) || 0));
                   const updates: Partial<Task> = { percentComplete: pct };
 
-                  // Auto-fill actuals if marking complete
                   if (pct === 100) {
                     const today = todayISO();
                     if (!task.actualStart) {
                       updates.actualStart = task.planStart;
                       updates.actualDuration = task.planDuration;
                     } else {
-                      // If it already started, default finish to Today
-                      updates.actualDuration = Math.max(0, daysBetween(task.actualStart, today));
+                      updates.actualDuration = Math.max(1, daysBetween(task.actualStart, today) + 1);
                     }
                   }
 
@@ -1003,7 +964,7 @@ function TaskRow({
             background: "#94a3b8",
             border: "1px solid rgba(0,0,0,0.05)",
           }}
-          title={`Planned: ${task.planStart} → ${planEnd}`}
+          title={`Planned: ${task.planStart} → ${planFinish}`}
         />
 
         {/* actual background bar - main bar */}
@@ -1012,7 +973,7 @@ function TaskRow({
           style={{
             left: actualLeft,
             width: actualWidth,
-            background: today > planEnd && !isComplete ? "#E6AC5C" : "#CBBED1",
+            background: isOverrun ? "#E6AC5C" : "#CBBED1",
             backgroundImage:
               "repeating-linear-gradient(-45deg,transparent,transparent 2px,rgba(255,255,255,0.3) 2px,rgba(255,255,255,0.3) 4px)",
             opacity: 1,
@@ -1025,7 +986,7 @@ function TaskRow({
               className="h-full transition-all duration-500"
               style={{
                 width: `${task.percentComplete}%`,
-                background: today > planEnd && !isComplete ? "#E6AC5C" : "var(--rk-navy)",
+                background: isOverrun ? "#E6AC5C" : "var(--rk-navy)",
                 opacity: 1,
               }}
             />
@@ -1042,6 +1003,7 @@ function TaskRow({
     </div>
   );
 }
+
 function AddSectionDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -1051,40 +1013,36 @@ function AddSectionDialog() {
       actions.addSection(name.trim());
       setName("");
       setOpen(false);
-      toast.success("Section added successfully");
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted font-medium flex items-center gap-2">
-          <Plus className="h-3 w-3" /> Add section
+        <button className="flex items-center gap-1 text-xs font-semibold text-[var(--rk-navy)] hover:underline">
+          + Add New Section
         </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Section</DialogTitle>
+          <DialogTitle>Add Section</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-3 py-4">
-          <div className="text-sm text-muted-foreground">
-            Give your section a clear name (e.g., Phase 1: Planning).
-          </div>
+        <div className="py-4 space-y-2">
+          <label className="text-xs font-semibold">Section Name</label>
           <Input
-            placeholder="e.g. Technical Implementation"
+            placeholder="e.g., Phase 3 - Testing"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAdd();
+            }}
           />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleAdd} className="bg-[var(--rk-navy)] text-white hover:opacity-90">
-            Create Section
-          </Button>
+          <Button onClick={handleAdd}>Add Section</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
