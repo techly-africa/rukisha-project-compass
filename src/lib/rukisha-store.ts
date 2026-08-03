@@ -152,15 +152,17 @@ function mapStakeholder(s: DbStakeholder): Stakeholder {
 }
 
 // --- Load + Realtime ---
-async function loadAll(id?: string) {
-  if (loadingPromise) return loadingPromise;
 
+// Tracks which project ID is currently in-flight so concurrent calls for a
+// *different* ID are not silently swallowed by the loadingPromise lock.
+let loadingForId: string | undefined = undefined;
+
+async function loadAll(id?: string) {
   const email = (
     typeof window !== "undefined" ? localStorage.getItem("rk-email") : null
   )?.toLowerCase();
 
   if (!email) {
-    // Guard: only signal "no session" once, not on every re-render
     if (!noEmailHandled) {
       noEmailHandled = true;
       loaded = true;
@@ -168,19 +170,32 @@ async function loadAll(id?: string) {
     }
     return;
   }
-  noEmailHandled = false; // Reset if email appears
+  noEmailHandled = false;
   const normalized = email.trim().toLowerCase();
 
-  // Only short-circuit if we have already loaded THIS specific project for THIS user.
-  // Using `id` (not `id || projectId`) prevents false positives when switching projects
-  // or when a no-ID portfolio call has already set loaded=true.
+  // True cache hit: same user, same project, already loaded — nothing to do.
   if (userEmail === normalized && loaded && id && projectId === id) {
     return;
   }
 
+  // If a load is already in-flight for the SAME target, return its promise.
+  // If it is for a DIFFERENT target, wait for it to finish then run our own.
+  if (loadingPromise) {
+    if (loadingForId === (id ?? "__portfolio__")) {
+      return loadingPromise;
+    }
+    // Different target: chain after the current load completes.
+    return loadingPromise.then(() => loadAll(id));
+  }
+
   userEmail = normalized;
 
-  // Safety fallback: guarantee loaded is set to true within 8 seconds max
+  // When switching to a different project, hide stale data while the new one loads.
+  if (id && projectId !== id) {
+    loaded = false;
+    emit();
+  }
+
   const safetyTimer = setTimeout(() => {
     if (!loaded) {
       console.warn("[Store] Hydration safety timeout reached, marking loaded = true");
@@ -188,6 +203,8 @@ async function loadAll(id?: string) {
       emit();
     }
   }, 8000);
+
+  loadingForId = id ?? "__portfolio__";
 
   loadingPromise = (async () => {
     try {
@@ -288,6 +305,7 @@ async function loadAll(id?: string) {
       clearTimeout(safetyTimer);
       loaded = true;
       loadingPromise = null;
+      loadingForId = undefined;
       emit();
     }
   })();
