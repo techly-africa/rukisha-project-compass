@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjectState, Section, Task, Stakeholder, ProjectInfo } from "./rukisha-types";
 import { toast } from "sonner";
@@ -171,9 +171,10 @@ async function loadAll(id?: string) {
   noEmailHandled = false; // Reset if email appears
   const normalized = email.trim().toLowerCase();
 
-  // If already loaded for this user and this project ID, short-circuit
-  const targetCheck = id || projectId;
-  if (userEmail === normalized && loaded && targetCheck && projectId === targetCheck) {
+  // Only short-circuit if we have already loaded THIS specific project for THIS user.
+  // Using `id` (not `id || projectId`) prevents false positives when switching projects
+  // or when a no-ID portfolio call has already set loaded=true.
+  if (userEmail === normalized && loaded && id && projectId === id) {
     return;
   }
 
@@ -335,12 +336,11 @@ export function useProject(): ProjectState {
 }
 
 export function useHydratedProject(id?: string) {
-  const [, setReady] = useState(false);
   useEffect(() => {
-    if (!id) return;
+    // Always call loadAll — even without a project ID, so the portfolio page can
+    // seed user projects and flip `loaded = true`, preventing an infinite spinner.
     loadAll(id).then(() => {
-      setReady(true);
-      startRealtime();
+      if (id) startRealtime();
     });
   }, [id]);
 }
