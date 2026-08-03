@@ -173,15 +173,23 @@ async function loadAll(id?: string) {
   noEmailHandled = false;
   const normalized = email.trim().toLowerCase();
 
-  // True cache hit: same user, same project, already loaded — nothing to do.
-  if (userEmail === normalized && loaded && id && projectId === id) {
+  // Resolve the effective target: when called with no ID (actions, realtime callbacks),
+  // treat the currently-loaded project as the target so the cache check works correctly.
+  // This prevents the infinite loop: realtime-event → loadAll() → fetch → state-write
+  // → realtime-event → loadAll() → ∞
+  const effectiveId = id ?? projectId ?? undefined;
+
+  // Cache hit: same user, same project, already loaded and no explicit ID switch.
+  // No-ID callers (actions, realtime) must not bypass this — they should only re-fetch
+  // when data is genuinely stale (i.e. loaded = false).
+  if (userEmail === normalized && loaded && effectiveId && projectId === effectiveId) {
     return;
   }
 
-  // If a load is already in-flight for the SAME target, return its promise.
-  // If it is for a DIFFERENT target, wait for it to finish then run our own.
+  // If a load is already in-flight for the SAME effective target, return its promise.
   if (loadingPromise) {
-    if (loadingForId === (id ?? "__portfolio__")) {
+    const lockId = id ?? "__portfolio__";
+    if (loadingForId === lockId) {
       return loadingPromise;
     }
     // Different target: chain after the current load completes.
@@ -190,7 +198,9 @@ async function loadAll(id?: string) {
 
   userEmail = normalized;
 
-  // When switching to a different project, hide stale data while the new one loads.
+  // Only reset the loaded flag (and show the spinner) when explicitly switching to
+  // a different project. No-ID callers and same-project refreshes keep showing
+  // existing content while the fetch runs in the background.
   if (id && projectId !== id) {
     loaded = false;
     emit();
