@@ -106,7 +106,15 @@ begin
       p.is_archived,
       coalesce((select round(avg(percent_complete)) from rk_tasks where project_id = p.id), 0)::numeric as progress
     from rk_project p
-    where p.id in (select project_id from rk_team where lower(email) = lower(p_email))
+    where (
+      p.id in (select project_id from rk_team where lower(email) = lower(p_email))
+      or exists (
+        select 1 from rk_org_members m 
+        where lower(m.email) = lower(p_email) 
+        and (m.org_role in ('Admin', 'PM') or m.role in ('Admin', 'PM'))
+        and (p.org_id = m.org_id or p.org_id is null)
+      )
+    )
     and p.is_archived = false
     order by p.updated_at desc;
   end if;

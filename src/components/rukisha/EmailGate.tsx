@@ -49,12 +49,13 @@ export function EmailGate({ children }: { children: ReactNode }) {
 
       // Use get_user_projects instead of check_access to avoid CORS issues.
       // If the user has at least one project OR is a superadmin, grant access.
-      const [{ data: projects }, { data: adminRow }] = await Promise.all([
+      const [{ data: projects }, { data: adminRow }, { data: orgRow }] = await Promise.all([
         (supabase as any).rpc("get_user_projects", { p_email: email }),
         (supabase as any).from("rk_superadmins").select("email").eq("email", email).maybeSingle(),
+        (supabase as any).from("rk_org_members").select("id").eq("email", email).maybeSingle(),
       ]);
 
-      const hasAccess = (projects && projects.length > 0) || !!adminRow;
+      const hasAccess = (projects && projects.length > 0) || !!adminRow || !!orgRow;
 
       if (hasAccess) {
         // Trigger the store to load projects now that the email is saved

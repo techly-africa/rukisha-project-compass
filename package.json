@@ -8,7 +8,7 @@
     "build": "vite build && mkdir -p dist/client && cp index.html dist/client/index.html",
     "build:dev": "vite build --mode development && mkdir -p dist/client && cp index.html dist/client/index.html",
     "preview": "vite preview --port 8080 --host 0.0.0.0",
-    "start": "node server.cjs",
+    "start": "node migrate.cjs && node server.cjs",
     "db:init": "node migrate.cjs",
     "lint": "eslint .",
     "format": "prettier --write ."

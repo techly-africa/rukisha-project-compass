@@ -44,7 +44,6 @@ export interface UserPermissionOverride {
   granted: boolean;
 }
 
-
 export interface SubTask {
   id: string;
   taskId: string;
@@ -126,4 +125,3 @@ export interface ProjectState {
   excludeWeekends?: boolean;
   holidays?: string[];
 }
-

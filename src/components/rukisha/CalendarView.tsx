@@ -22,8 +22,18 @@ function dayOfWeek(iso: string): number {
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 // ─── Task chip ────────────────────────────────────────────────────────────────
@@ -41,11 +51,11 @@ function TaskChip({
 }) {
   const status = getTaskStatus(task);
   const toneColor: Record<string, string> = {
-    complete:    "#10b981",
+    complete: "#10b981",
     in_progress: "var(--rk-blue)",
-    at_risk:     "var(--rk-warn)",
+    at_risk: "var(--rk-warn)",
     not_started: "#94a3b8",
-    overdue:     "var(--rk-danger)",
+    overdue: "var(--rk-danger)",
   };
   const color = toneColor[status.status] ?? "#94a3b8";
 
@@ -65,9 +75,7 @@ function TaskChip({
         }}
         title={`${task.activity} (${task.percentComplete}%)`}
       >
-        {(isStart || !isContinuation) && (
-          <span className="truncate">{task.activity}</span>
-        )}
+        {(isStart || !isContinuation) && <span className="truncate">{task.activity}</span>}
       </div>
     </TaskDetailModal>
   );
@@ -126,8 +134,8 @@ function CalendarCell({
             isToday
               ? "bg-[var(--rk-navy)] text-white"
               : isCurrentMonth
-              ? "text-foreground"
-              : "text-muted-foreground/40",
+                ? "text-foreground"
+                : "text-muted-foreground/40",
           ].join(" ")}
         >
           {dayNum}
@@ -222,14 +230,21 @@ export function CalendarView() {
 
   // Navigate
   const prevMonth = () => {
-    if (month === 0) { setYear(y => y - 1); setMonth(11); }
-    else setMonth(m => m - 1);
+    if (month === 0) {
+      setYear((y) => y - 1);
+      setMonth(11);
+    } else setMonth((m) => m - 1);
   };
   const nextMonth = () => {
-    if (month === 11) { setYear(y => y + 1); setMonth(0); }
-    else setMonth(m => m + 1);
+    if (month === 11) {
+      setYear((y) => y + 1);
+      setMonth(0);
+    } else setMonth((m) => m + 1);
   };
-  const goToToday = () => { setYear(now.getFullYear()); setMonth(now.getMonth()); };
+  const goToToday = () => {
+    setYear(now.getFullYear());
+    setMonth(now.getMonth());
+  };
 
   // Build grid: Mon-aligned weeks
   const grid = useMemo(() => {
@@ -332,7 +347,10 @@ export function CalendarView() {
         <div className="flex items-center gap-2">
           {isPM && (
             <CreateTaskModal>
-              <Button size="sm" className="bg-[var(--rk-navy)] text-white hover:bg-[var(--rk-navy)]/90 shadow-sm mr-1">
+              <Button
+                size="sm"
+                className="bg-[var(--rk-navy)] text-white hover:bg-[var(--rk-navy)]/90 shadow-sm mr-1"
+              >
                 <Plus className="h-4 w-4 mr-1" />
                 Add Task
               </Button>

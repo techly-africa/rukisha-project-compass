@@ -32,7 +32,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Organization context for member management
-  const [orgCtx, setOrgCtx] = useState<{ id: string; name: string; role: "Admin" | "PM" | "Staff" } | null>(null);
+  const [orgCtx, setOrgCtx] = useState<{
+    id: string;
+    name: string;
+    role: "Admin" | "PM" | "Staff";
+  } | null>(null);
   const [showOrgModal, setShowOrgModal] = useState(false);
 
   // Keep local name in sync when store loads a new project
@@ -317,34 +321,38 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Link
-              to="/p/$projectId"
-              params={{ projectId: state.id! }}
-              className="md:hidden text-xs px-2 py-1 rounded border border-border"
-            >
-              Gantt
-            </Link>
-            <Link
-              to="/p/$projectId/kanban"
-              params={{ projectId: state.id! }}
-              className="md:hidden text-xs px-2 py-1 rounded border border-border"
-            >
-              Kanban
-            </Link>
-            <Link
-              to="/p/$projectId/calendar"
-              params={{ projectId: state.id! }}
-              className="md:hidden text-xs px-2 py-1 rounded border border-border"
-            >
-              Calendar
-            </Link>
-            <Link
-              to="/p/$projectId/dashboard"
-              params={{ projectId: state.id! }}
-              className="md:hidden text-xs px-2 py-1 rounded border border-border"
-            >
-              Dash
-            </Link>
+            {state.id && (
+              <>
+                <Link
+                  to="/p/$projectId"
+                  params={{ projectId: state.id }}
+                  className="md:hidden text-xs px-2 py-1 rounded border border-border"
+                >
+                  Gantt
+                </Link>
+                <Link
+                  to="/p/$projectId/kanban"
+                  params={{ projectId: state.id }}
+                  className="md:hidden text-xs px-2 py-1 rounded border border-border"
+                >
+                  Kanban
+                </Link>
+                <Link
+                  to="/p/$projectId/calendar"
+                  params={{ projectId: state.id }}
+                  className="md:hidden text-xs px-2 py-1 rounded border border-border"
+                >
+                  Calendar
+                </Link>
+                <Link
+                  to="/p/$projectId/dashboard"
+                  params={{ projectId: state.id }}
+                  className="md:hidden text-xs px-2 py-1 rounded border border-border"
+                >
+                  Dash
+                </Link>
+              </>
+            )}
             <button
               onClick={() => actions.toggleDark()}
               className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted"
@@ -370,7 +378,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <OrgUserManagementModal
           orgId={orgCtx?.id ?? "default"}
           orgName={orgCtx?.name ?? "Rukisha Solutions Rwanda"}
-          currentUserRole={orgCtx?.role ?? (state.isSuperAdmin ? "Admin" : (state.userRole as any) ?? "PM")}
+          currentUserRole={
+            orgCtx?.role ?? (state.isSuperAdmin ? "Admin" : ((state.userRole as any) ?? "PM"))
+          }
           onClose={() => setShowOrgModal(false)}
         />
       )}

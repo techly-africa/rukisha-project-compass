@@ -15,17 +15,41 @@ const fs = require("fs");
 let connectionString = process.env.DATABASE_URL;
 
 // Auto-correct local DB URL to Docker DB host in container/Linux production environments
-if ((process.platform !== "darwin" || fs.existsSync("/.dockerenv")) && connectionString && (connectionString.includes("localhost:5433") || connectionString.includes("127.0.0.1:5433"))) {
+if (
+  (process.platform !== "darwin" || fs.existsSync("/.dockerenv")) &&
+  connectionString &&
+  (connectionString.includes("localhost:5433") || connectionString.includes("127.0.0.1:5433"))
+) {
   console.log("Rewriting localhost:5433 database URL to internal Docker service db:5432");
-  connectionString = connectionString.replace("localhost:5433", "db:5432").replace("127.0.0.1:5433", "db:5432");
+  connectionString = connectionString
+    .replace("localhost:5433", "db:5432")
+    .replace("127.0.0.1:5433", "db:5432");
 }
 
+const useSsl =
+  process.env.DB_SSL === "true" ||
+  (connectionString &&
+    (connectionString.includes("sslmode=require") ||
+      connectionString.includes("supabase") ||
+      connectionString.includes("digitalocean") ||
+      connectionString.includes("amazonaws.com") ||
+      connectionString.includes("render.com") ||
+      connectionString.includes("railway.app")));
 
+const poolConfig = {
+  connectionString: connectionString,
+  max: 25,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+  statement_timeout: 10000,
+};
+
+if (useSsl) {
+  poolConfig.ssl = { rejectUnauthorized: false };
+}
 
 // Initialize PostgreSQL pool
-const pool = new Pool({
-  connectionString: connectionString,
-});
+const pool = new Pool(poolConfig);
 
 pool.on("error", (err) => {
   console.error("Unexpected error on idle client", err);
@@ -58,51 +82,60 @@ function sanitizeIdentifier(name) {
   return `"${name}"`;
 }
 
-// Helper to lookup a user's role on a project or globally
+const roleCache = new Map();
 async function getUserRole(email, projectId) {
   if (!email) return null;
   const cleanEmail = email.trim().toLowerCase();
-
-  // 1. Check if user is a super admin
-  const adminRes = await pool.query(
-    "SELECT 1 FROM rk_superadmins WHERE lower(trim(email)) = $1",
-    [cleanEmail],
-  );
-  if (adminRes.rows.length > 0) {
-    return "Admin";
+  const cacheKey = `${cleanEmail}:${projectId || ""}`;
+  const cached = roleCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 10000) {
+    return cached.role;
   }
 
-  // 2. Check team membership for the project if projectId provided
-  if (projectId) {
-    const teamRes = await pool.query(
-      "SELECT role FROM rk_team WHERE project_id = $1 AND lower(trim(email)) = $2",
-      [projectId, cleanEmail],
-    );
-    if (teamRes.rows.length > 0) {
-      const r = teamRes.rows[0].role;
-      if (!r || r === "Member") return "Staff";
-      return r;
-    }
+  try {
+    const query = `
+      SELECT 'Admin' as role FROM rk_superadmins WHERE lower(trim(email)) = $1
+      UNION ALL
+      SELECT CASE WHEN role IS NULL OR role = 'Member' THEN 'Staff' ELSE role END as role 
+        FROM rk_team WHERE project_id = $2 AND lower(trim(email)) = $1
+      UNION ALL
+      SELECT CASE WHEN org_role IN ('Admin', 'PM') THEN org_role ELSE 'Staff' END as role 
+        FROM rk_org_members WHERE lower(trim(email)) = $1
+      LIMIT 1;
+    `;
+    const res = await pool.query(query, [cleanEmail, projectId || null]);
+    const role = res.rows[0]?.role || null;
+    roleCache.set(cacheKey, { role, ts: Date.now() });
+    return role;
+  } catch (err) {
+    console.error("Error in getUserRole:", err.message);
+    return null;
   }
-
-  // 3. Check organization membership for global role
-  const orgRes = await pool.query(
-    "SELECT org_role FROM rk_org_members WHERE lower(trim(email)) = $1",
-    [cleanEmail],
-  );
-  if (orgRes.rows.length > 0) {
-    const gr = orgRes.rows[0].org_role;
-    if (gr === "Admin" || gr === "PM") return gr;
-    return "Staff";
-  }
-
-  return null;
 }
 
 // Extract project ID from request body where possible
 async function extractProjectId(reqBody) {
   const { table, rpc, data, filters } = reqBody;
   if (rpc === "vault_document" && data) return data.p_project_id;
+  if (rpc === "update_task_secure" && data && data.p_id) {
+    try {
+      const res = await pool.query(`SELECT project_id FROM rk_tasks WHERE id = $1`, [data.p_id]);
+      if (res.rows[0]?.project_id) return res.rows[0].project_id;
+    } catch (err) {
+      console.error("Error extracting project_id from update_task_secure:", err.message);
+    }
+  }
+  if (rpc === "update_subtask_secure" && data && data.p_id) {
+    try {
+      const res = await pool.query(
+        `SELECT t.project_id FROM rk_subtasks s JOIN rk_tasks t ON t.id = s.task_id WHERE s.id = $1`,
+        [data.p_id],
+      );
+      if (res.rows[0]?.project_id) return res.rows[0].project_id;
+    } catch (err) {
+      console.error("Error extracting project_id from update_subtask_secure:", err.message);
+    }
+  }
   if (data && data.project_id) return data.project_id;
   if (data && data.task_id) {
     try {
@@ -123,7 +156,9 @@ async function extractProjectId(reqBody) {
       const taskIdVal = Array.isArray(taskFilter.value) ? taskFilter.value[0] : taskFilter.value;
       if (taskIdVal) {
         try {
-          const res = await pool.query(`SELECT project_id FROM rk_tasks WHERE id = $1`, [taskIdVal]);
+          const res = await pool.query(`SELECT project_id FROM rk_tasks WHERE id = $1`, [
+            taskIdVal,
+          ]);
           if (res.rows[0]?.project_id) return res.rows[0].project_id;
         } catch (err) {
           console.error("Error extracting project_id from task_id filter:", err.message);
@@ -247,6 +282,8 @@ app.post("/api/db", async (req, res) => {
         // - Update task progress (update rk_tasks, but only percent_complete, actual_start, actual_duration)
         // - Post/delete comments and attachments (rk_task_comments, rk_task_attachments)
         if (table === "rk_subtasks" && action === "update") {
+          allowed = true;
+        } else if (rpc === "update_subtask_secure") {
           allowed = true;
         } else if (table === "rk_task_comments" || table === "rk_task_attachments") {
           allowed = true;
@@ -426,11 +463,11 @@ app.post("/api/db", async (req, res) => {
       }
 
       const cols = keys.map(sanitizeIdentifier).join(", ");
-      
+
       const values = [];
       const placeholderRows = [];
       let valIdx = 1;
-      
+
       for (const row of rows) {
         const rowPlaceholders = [];
         for (const k of keys) {
@@ -442,7 +479,7 @@ app.post("/api/db", async (req, res) => {
 
       const sql = `INSERT INTO ${safeTable} (${cols}) VALUES ${placeholderRows.join(", ")} RETURNING *`;
       const dbRes = await pool.query(sql, values);
-      
+
       let result = dbRes.rows;
       if (single && !isArray) {
         result = dbRes.rows.length > 0 ? dbRes.rows[0] : null;
@@ -529,6 +566,118 @@ app.post("/api/db", async (req, res) => {
   } catch (err) {
     console.error("Database query error:", err);
     return res.status(500).json({ data: null, error: { message: err.message } });
+  }
+});
+
+// 1.5 Batch Project Hydration Endpoint
+app.post("/api/project-hydration", async (req, res) => {
+  const userEmail = req.headers["x-user-email"];
+  if (!userEmail) {
+    return res.status(401).json({ error: "Unauthorized: Missing user email header" });
+  }
+
+  const cleanEmail = userEmail.trim().toLowerCase();
+
+  try {
+    const [userProjectsRes, adminRes] = await Promise.all([
+      pool.query("SELECT * FROM get_user_projects($1)", [cleanEmail]),
+      pool.query("SELECT 1 FROM rk_superadmins WHERE lower(trim(email)) = $1", [cleanEmail]),
+    ]);
+
+    const userProjects = userProjectsRes.rows.map((p) => ({
+      id: p.id,
+      name: p.name,
+      goLiveDate: p.go_live_date,
+      updatedAt: p.updated_at,
+      isArchived: p.is_archived,
+      progress: Number(p.progress || 0),
+    }));
+
+    const isSuperAdmin = adminRes.rows.length > 0;
+
+    let targetId = req.body.projectId;
+    if (!targetId && userProjects.length > 0) {
+      targetId = userProjects[0].id;
+    }
+
+    if (!targetId) {
+      return res.json({
+        userProjects,
+        isSuperAdmin,
+        project: null,
+        sections: [],
+        tasks: [],
+        stakeholders: [],
+        teamMembers: [],
+        userRole: isSuperAdmin ? "Admin" : "Staff",
+      });
+    }
+
+    const userRole = await getUserRole(cleanEmail, targetId);
+    if (!userRole && !isSuperAdmin) {
+      return res.status(403).json({ error: "Forbidden: Access denied to target project" });
+    }
+
+    const [projRes, secRes, taskRes, stRes, teamRes, orgRes] = await Promise.all([
+      pool.query("SELECT * FROM rk_project WHERE id = $1", [targetId]),
+      pool.query("SELECT * FROM rk_sections WHERE project_id = $1 ORDER BY position", [targetId]),
+      pool.query("SELECT * FROM rk_tasks WHERE project_id = $1 ORDER BY position", [targetId]),
+      pool.query("SELECT * FROM rk_stakeholders WHERE project_id = $1 ORDER BY name", [targetId]),
+      pool.query("SELECT id, email, name, role FROM rk_team WHERE project_id = $1 ORDER BY name", [
+        targetId,
+      ]),
+      pool.query("SELECT id, email, name, role, org_role FROM rk_org_members"),
+    ]);
+
+    const project = projRes.rows[0] || null;
+    const sections = secRes.rows;
+    const tasks = taskRes.rows;
+    const stakeholders = stRes.rows;
+    const allTeamMembers = teamRes.rows;
+    const orgMembers = orgRes.rows;
+
+    let subtasks = [];
+    let dependencies = [];
+    let comments = [];
+    let attachments = [];
+
+    if (tasks.length > 0) {
+      const taskIds = tasks.map((t) => t.id);
+      const [subRes, depRes, commRes, attRes] = await Promise.all([
+        pool.query("SELECT * FROM rk_subtasks WHERE task_id = ANY($1)", [taskIds]),
+        pool.query("SELECT * FROM rk_task_dependencies WHERE task_id = ANY($1)", [taskIds]),
+        pool.query("SELECT * FROM rk_task_comments WHERE task_id = ANY($1) ORDER BY created_at", [
+          taskIds,
+        ]),
+        pool.query(
+          "SELECT * FROM rk_task_attachments WHERE task_id = ANY($1) ORDER BY created_at",
+          [taskIds],
+        ),
+      ]);
+      subtasks = subRes.rows;
+      dependencies = depRes.rows;
+      comments = commRes.rows;
+      attachments = attRes.rows;
+    }
+
+    return res.json({
+      userProjects,
+      isSuperAdmin,
+      userRole: userRole || (isSuperAdmin ? "Admin" : "Staff"),
+      project,
+      sections,
+      tasks,
+      stakeholders,
+      teamMembers: allTeamMembers,
+      orgMembers,
+      subtasks,
+      dependencies,
+      comments,
+      attachments,
+    });
+  } catch (err) {
+    console.error("Project hydration error:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -668,7 +817,7 @@ app.use((req, res, next) => {
   if (req.method !== "GET") return next();
   // Don't intercept API or storage routes
   if (req.path.startsWith("/api/") || req.path.startsWith("/storage/")) return next();
-  
+
   const indexPath = path.join(__dirname, "dist", "index.html");
   res.sendFile(indexPath, (err) => {
     if (err) {
@@ -679,8 +828,6 @@ app.use((req, res, next) => {
     }
   });
 });
-
-
 
 // Live database backup helper to preserve assigned users & project changes across container restarts
 let backupTimer = null;

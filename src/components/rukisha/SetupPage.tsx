@@ -348,7 +348,8 @@ export function SetupPage() {
               Working Days & Calendar Schedule
             </h2>
             <p className="text-xs text-muted-foreground">
-              Configure active working days and custom project holidays. End dates and task durations will skip non-working days.
+              Configure active working days and custom project holidays. End dates and task
+              durations will skip non-working days.
             </p>
             <div className="rounded-lg border border-border bg-card p-5 space-y-4">
               <label className="flex items-center gap-3 cursor-pointer">

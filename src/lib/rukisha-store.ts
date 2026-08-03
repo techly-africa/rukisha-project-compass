@@ -153,155 +153,100 @@ function mapStakeholder(s: DbStakeholder): Stakeholder {
 
 // --- Load + Realtime ---
 async function loadAll(id?: string) {
-  if (loadingPromise && !id) return loadingPromise;
+  if (loadingPromise) return loadingPromise;
+
+  const email = (
+    typeof window !== "undefined" ? localStorage.getItem("rk-email") : null
+  )?.toLowerCase();
+
+  if (!email) {
+    // Guard: only signal "no session" once, not on every re-render
+    if (!noEmailHandled) {
+      noEmailHandled = true;
+      loaded = true;
+      emit();
+    }
+    return;
+  }
+  noEmailHandled = false; // Reset if email appears
+  const normalized = email.trim().toLowerCase();
+
+  // If already loaded for this user and this project ID, short-circuit
+  const targetCheck = id || projectId;
+  if (userEmail === normalized && loaded && targetCheck && projectId === targetCheck) {
+    return;
+  }
+
+  userEmail = normalized;
+
+  // Safety fallback: guarantee loaded is set to true within 8 seconds max
+  const safetyTimer = setTimeout(() => {
+    if (!loaded) {
+      console.warn("[Store] Hydration safety timeout reached, marking loaded = true");
+      loaded = true;
+      emit();
+    }
+  }, 8000);
 
   loadingPromise = (async () => {
-    const email = (
-      typeof window !== "undefined" ? localStorage.getItem("rk-email") : null
-    )?.toLowerCase();
-
-    if (!email) {
-      // Guard: only signal "no session" once, not on every re-render
-      if (!noEmailHandled) {
-        noEmailHandled = true;
-        loaded = true;
-        emit();
-      }
-      return;
-    }
-    noEmailHandled = false; // Reset if email appears
-    const normalized = email.trim().toLowerCase();
-
-    if (userEmail === normalized && loaded && !id) return;
-
-    userEmail = normalized;
-
-    const { data: projectListRaw, error: listErr } = await (supabase as any).rpc(
-      "get_user_projects",
-      {
-        p_email: userEmail,
-      },
-    );
-
-    if (listErr) {
-      console.error("Discovery failed:", listErr);
-      setState((s) => ({ ...s, userProjects: [], id: null, userEmail, isSuperAdmin }));
-      loaded = true;
-      emit();
-      return;
-    }
-
-    projectList = (projectListRaw || []).map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      goLiveDate: p.go_live_date,
-      updatedAt: p.updated_at,
-      isArchived: p.is_archived,
-      progress: Number(p.progress || 0),
-    }));
-
-    const { data: adminData } = await (supabase as any)
-      .from("rk_superadmins")
-      .select("email")
-      .eq("email", userEmail)
-      .maybeSingle();
-    isSuperAdmin = !!adminData;
-
-    if (projectList.length === 0) {
-      setState((s) => ({ ...s, userProjects: [], id: null, userEmail, isSuperAdmin }));
-      loaded = true;
-      emit();
-      return;
-    }
-
-    let targetId = id || projectId;
-    if (!targetId && projectList.length > 0) {
-      if (state.id && projectList.find((p: any) => p.id === state.id)) {
-        targetId = state.id;
-      } else {
-        targetId = projectList[0].id;
-      }
-    }
-
-    if (!targetId) {
-      setState((s) => ({ ...s, userProjects: projectList, id: null, userEmail, isSuperAdmin }));
-      loaded = true;
-      emit();
-      return;
-    }
-
-    projectId = targetId;
-
-    const cached = projectCache.get(targetId);
-    if (cached && !id) {
-      state = { ...cached, userProjects: projectList, userEmail, isSuperAdmin };
-      loaded = true;
-      emit();
-    }
-
     try {
-      const [
-        { data: project },
-        { data: sections },
-        { data: tasks },
-        { data: stakeholders },
-        { data: teamMember },
-        { data: allTeamMembers },
-      ] = await Promise.all([
-        supabase.from("rk_project").select("*").eq("id", targetId).maybeSingle(),
-        supabase.from("rk_sections").select("*").eq("project_id", targetId).order("position"),
-        supabase.from("rk_tasks").select("*").eq("project_id", targetId).order("position"),
-        supabase.from("rk_stakeholders").select("*").eq("project_id", targetId).order("name"),
-        supabase
-          .from("rk_team")
-          .select("role")
-          .eq("project_id", targetId)
-          .eq("email", userEmail)
-          .maybeSingle(),
-        supabase.from("rk_team").select("id, email, name").eq("project_id", targetId).order("name"),
-      ]);
+      const controller = new AbortController();
+      const fetchTimer = setTimeout(() => controller.abort(), 7000);
 
-      let subtasks: any[] = [];
-      let dependencies: any[] = [];
-      let comments: any[] = [];
-      let attachments: any[] = [];
-      if (tasks && tasks.length > 0) {
-        const taskIds = tasks.map((t: DbTask) => t.id);
-        const [stRes, depsRes, commRes, attRes] = await Promise.all([
-          supabase.from("rk_subtasks").select("*").in("task_id", taskIds),
-          supabase.from("rk_task_dependencies").select("*").in("task_id", taskIds),
-          (supabase as any).from("rk_task_comments").select("*").in("task_id", taskIds).order("created_at"),
-          (supabase as any).from("rk_task_attachments").select("*").in("task_id", taskIds).order("created_at"),
-        ]);
-        subtasks = stRes.data || [];
-        dependencies = depsRes.data || [];
-        comments = commRes.data || [];
-        attachments = attRes.data || [];
+      const res = await fetch("/api/project-hydration", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-email": userEmail,
+        },
+        body: JSON.stringify({ projectId: id || projectId || undefined }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(fetchTimer);
+
+      if (!res.ok) {
+        throw new Error(`Hydration HTTP error: ${res.status}`);
       }
 
-      // Fetch org members to ensure all organization users are available in owner dropdowns
-      const { data: orgMembersData } = await (supabase as any)
-        .from("rk_org_members")
-        .select("id, email, name");
+      const payload = await res.json();
+      const {
+        userProjects,
+        isSuperAdmin: superAdminFlag,
+        userRole,
+        project,
+        sections,
+        tasks,
+        stakeholders,
+        teamMembers,
+        orgMembers,
+        subtasks,
+        dependencies,
+        comments,
+        attachments,
+      } = payload;
+
+      projectList = userProjects || [];
+      isSuperAdmin = !!superAdminFlag;
+
+      if (!project) {
+        setState((s) => ({ ...s, id: null, userProjects: projectList, userEmail, isSuperAdmin }));
+        return;
+      }
+
+      projectId = project.id;
 
       const combinedMembersMap = new Map<string, { id: string; email: string; name: string }>();
-      (allTeamMembers || []).forEach((m: any) => {
+      (teamMembers || []).forEach((m: any) => {
         const em = m.email.toLowerCase().trim();
         combinedMembersMap.set(em, { id: m.id, email: m.email, name: m.name || m.email });
       });
-      (orgMembersData || []).forEach((m: any) => {
+      (orgMembers || []).forEach((m: any) => {
         const em = m.email.toLowerCase().trim();
         if (!combinedMembersMap.has(em)) {
           combinedMembersMap.set(em, { id: m.id, email: m.email, name: m.name || m.email });
         }
       });
-
-      if (!project) {
-        setState((s) => ({ ...s, id: null, userProjects: projectList, userEmail, isSuperAdmin }));
-        loaded = true;
-        emit();
-        return;
-      }
 
       const localDark =
         typeof window !== "undefined" ? localStorage.getItem("rk-dark") === "1" : false;
@@ -327,10 +272,7 @@ async function loadAll(id?: string) {
         darkMode: localDark,
         userProjects: projectList,
         userEmail,
-        userRole:
-          !(teamMember as any)?.role || (teamMember as any)?.role === "Member"
-            ? "Staff"
-            : (teamMember as any).role,
+        userRole: userRole || "Staff",
         isSuperAdmin,
         excludeWeekends: project.exclude_weekends ?? true,
         holidays: project.holidays ?? [],
@@ -338,17 +280,16 @@ async function loadAll(id?: string) {
 
       projectCache.set(project.id, newState);
       state = newState;
-      loaded = true;
-      emit();
     } catch (err) {
-      console.error("Failed to load project details:", err);
+      console.error("Failed to load project details via hydration API:", err);
       setState((s) => ({ ...s, userProjects: projectList, userEmail, isSuperAdmin }));
+    } finally {
+      clearTimeout(safetyTimer);
       loaded = true;
+      loadingPromise = null;
       emit();
     }
-  })().finally(() => {
-    loadingPromise = null;
-  });
+  })();
 
   return loadingPromise;
 }
@@ -396,6 +337,7 @@ export function useProject(): ProjectState {
 export function useHydratedProject(id?: string) {
   const [, setReady] = useState(false);
   useEffect(() => {
+    if (!id) return;
     loadAll(id).then(() => {
       setReady(true);
       startRealtime();
@@ -787,7 +729,10 @@ export const actions = {
   async addComment(taskId: string, content: string) {
     if (!content.trim()) return;
     const author = userEmail
-      ? userEmail.split("@")[0].replace(/\./g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+      ? userEmail
+          .split("@")[0]
+          .replace(/\./g, " ")
+          .replace(/\b\w/g, (l) => l.toUpperCase())
       : "Team Member";
 
     try {
@@ -798,15 +743,25 @@ export const actions = {
         .single();
 
       const newComment = data
-        ? { id: data.id, taskId: data.task_id, author: data.author, content: data.content, createdAt: data.created_at }
-        : { id: uid(), taskId, author, content: content.trim(), createdAt: new Date().toISOString() };
+        ? {
+            id: data.id,
+            taskId: data.task_id,
+            author: data.author,
+            content: data.content,
+            createdAt: data.created_at,
+          }
+        : {
+            id: uid(),
+            taskId,
+            author,
+            content: content.trim(),
+            createdAt: new Date().toISOString(),
+          };
 
       setState((s) => ({
         ...s,
         tasks: s.tasks.map((t) =>
-          t.id === taskId
-            ? { ...t, comments: [...(t.comments || []), newComment] }
-            : t,
+          t.id === taskId ? { ...t, comments: [...(t.comments || []), newComment] } : t,
         ),
       }));
       toast.success("Comment posted");
@@ -834,20 +789,37 @@ export const actions = {
     try {
       const { data } = await (supabase as any)
         .from("rk_task_attachments")
-        .insert({ task_id: taskId, name: attachment.name, url: attachment.url, size: attachment.size || "" })
+        .insert({
+          task_id: taskId,
+          name: attachment.name,
+          url: attachment.url,
+          size: attachment.size || "",
+        })
         .select()
         .single();
 
       const newAtt = data
-        ? { id: data.id, taskId: data.task_id, name: data.name, url: data.url, size: data.size || "", createdAt: data.created_at }
-        : { id: uid(), taskId, name: attachment.name, url: attachment.url, size: attachment.size || "", createdAt: new Date().toISOString() };
+        ? {
+            id: data.id,
+            taskId: data.task_id,
+            name: data.name,
+            url: data.url,
+            size: data.size || "",
+            createdAt: data.created_at,
+          }
+        : {
+            id: uid(),
+            taskId,
+            name: attachment.name,
+            url: attachment.url,
+            size: attachment.size || "",
+            createdAt: new Date().toISOString(),
+          };
 
       setState((s) => ({
         ...s,
         tasks: s.tasks.map((t) =>
-          t.id === taskId
-            ? { ...t, attachments: [...(t.attachments || []), newAtt] }
-            : t,
+          t.id === taskId ? { ...t, attachments: [...(t.attachments || []), newAtt] } : t,
         ),
       }));
       toast.success("Attachment added");
@@ -899,7 +871,12 @@ export const actions = {
   },
 
   /** Invite (add) a member to the organization */
-  async inviteOrgMember(orgId: string, email: string, name: string, role: "Admin" | "PM" | "Staff") {
+  async inviteOrgMember(
+    orgId: string,
+    email: string,
+    name: string,
+    role: "Admin" | "PM" | "Staff",
+  ) {
     const cleanEmail = email.trim().toLowerCase();
     // idempotent: check if already exists
     const { data: existing } = await (supabase as any)
@@ -933,7 +910,10 @@ export const actions = {
   },
 
   /** Update an org member's name or role */
-  async updateOrgMember(memberId: string, updates: { name?: string; role?: "Admin" | "PM" | "Staff" }) {
+  async updateOrgMember(
+    memberId: string,
+    updates: { name?: string; role?: "Admin" | "PM" | "Staff" },
+  ) {
     const payload: any = {};
     if (updates.name !== undefined) payload.name = updates.name;
     if (updates.role !== undefined) {
@@ -954,10 +934,7 @@ export const actions = {
 
   /** Remove a member from the organization */
   async removeOrgMember(memberId: string) {
-    const { error } = await (supabase as any)
-      .from("rk_org_members")
-      .delete()
-      .eq("id", memberId);
+    const { error } = await (supabase as any).from("rk_org_members").delete().eq("id", memberId);
     if (error) {
       toast.error("Failed to remove member.");
       return false;
@@ -995,15 +972,13 @@ export const actions = {
     if (!orgMember) {
       // Auto-register user in organization if not already a member
       const assignedRole = role === "Admin" ? "Admin" : role === "PM" ? "PM" : "Staff";
-      await (supabase as any)
-        .from("rk_org_members")
-        .insert({
-          org_id: targetOrgId,
-          email: cleanEmail,
-          name: name || cleanEmail.split("@")[0],
-          role: assignedRole,
-          org_role: assignedRole,
-        });
+      await (supabase as any).from("rk_org_members").insert({
+        org_id: targetOrgId,
+        email: cleanEmail,
+        name: name || cleanEmail.split("@")[0],
+        role: assignedRole,
+        org_role: assignedRole,
+      });
     }
 
     const { data: existing } = await (supabase as any)
@@ -1200,7 +1175,6 @@ export const actions = {
   },
 };
 
-
 /** Call after login to force a fresh project fetch with the saved email. */
 export function initializeStore() {
   noEmailHandled = false;
@@ -1217,7 +1191,11 @@ export function dateAdd(iso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function isWorkingDay(iso: string, excludeWeekends = true, holidays: string[] = []): boolean {
+export function isWorkingDay(
+  iso: string,
+  excludeWeekends = true,
+  holidays: string[] = [],
+): boolean {
   if (!iso || iso.length < 10) return true;
   const d = new Date(iso + "T00:00:00");
   if (isNaN(d.getTime())) return true;

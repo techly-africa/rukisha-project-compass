@@ -176,11 +176,7 @@ export function CreateTaskModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground">Plan Start Date</label>
-              <Input
-                type="date"
-                value={planStart}
-                onChange={(e) => setPlanStart(e.target.value)}
-              />
+              <Input type="date" value={planStart} onChange={(e) => setPlanStart(e.target.value)} />
             </div>
 
             <div className="space-y-1">
@@ -196,7 +192,12 @@ export function CreateTaskModal({
             <div className="col-span-2 rounded-md bg-muted/40 px-3 py-1.5 border border-border/60 text-xs flex items-center justify-between">
               <span className="text-muted-foreground font-medium">Computed Finish Date:</span>
               <span className="font-semibold text-foreground">
-                {getComputedFinishDate(planStart, planDuration, state.excludeWeekends, state.holidays)}
+                {getComputedFinishDate(
+                  planStart,
+                  planDuration,
+                  state.excludeWeekends,
+                  state.holidays,
+                )}
               </span>
             </div>
           </div>
@@ -222,7 +223,10 @@ export function CreateTaskModal({
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-[var(--rk-navy)] hover:bg-[var(--rk-navy)]/90 text-white">
+            <Button
+              type="submit"
+              className="bg-[var(--rk-navy)] hover:bg-[var(--rk-navy)]/90 text-white"
+            >
               Create Task
             </Button>
           </DialogFooter>
@@ -319,7 +323,8 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
     reader.onload = () => {
       const url = reader.result as string;
       const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-      const sizeStr = file.size >= 1024 * 1024 ? `${sizeMb} MB` : `${Math.round(file.size / 1024)} KB`;
+      const sizeStr =
+        file.size >= 1024 * 1024 ? `${sizeMb} MB` : `${Math.round(file.size / 1024)} KB`;
 
       actions.addAttachment(task.id, {
         name: file.name,
@@ -386,7 +391,9 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
                 </DialogTitle>
               )}
               <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusColor[status.status]}`}>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusColor[status.status]}`}
+                >
                   {status.label}
                 </span>
                 <span>•</span>
@@ -410,7 +417,11 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </AlertDialogTrigger>
@@ -418,12 +429,16 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
                     <AlertDialogHeader>
                       <AlertDialogTitle>Archive Task?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to archive <strong>"{task.activity}"</strong>? It will be removed from all views.
+                        Are you sure you want to archive <strong>"{task.activity}"</strong>? It will
+                        be removed from all views.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleArchive} className="bg-red-600 hover:bg-red-700 text-white">
+                      <AlertDialogAction
+                        onClick={handleArchive}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
                         Archive Task
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -476,7 +491,9 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-muted-foreground">Plan Start</label>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground">
+                  Plan Start
+                </label>
                 <Input
                   type="date"
                   value={planStart}
@@ -486,7 +503,9 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-muted-foreground">Plan Duration</label>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground">
+                  Plan Duration
+                </label>
                 <Input
                   type="number"
                   min="1"
@@ -497,7 +516,9 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-muted-foreground">Actual Start</label>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground">
+                  Actual Start
+                </label>
                 <Input
                   type="date"
                   value={actualStart}
@@ -507,7 +528,9 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-muted-foreground">Actual Duration</label>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground">
+                  Actual Duration
+                </label>
                 <Input
                   type="number"
                   min="0"
@@ -518,9 +541,16 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
               </div>
 
               <div className="col-span-2 md:col-span-4 rounded-md bg-muted/50 px-3 py-1.5 border border-border/60 text-xs flex items-center justify-between">
-                <span className="text-muted-foreground font-medium">Computed Plan Finish Date:</span>
+                <span className="text-muted-foreground font-medium">
+                  Computed Plan Finish Date:
+                </span>
                 <span className="font-semibold text-foreground font-mono">
-                  {getComputedFinishDate(planStart, planDuration, state.excludeWeekends, state.holidays)}
+                  {getComputedFinishDate(
+                    planStart,
+                    planDuration,
+                    state.excludeWeekends,
+                    state.holidays,
+                  )}
                 </span>
               </div>
             </div>
@@ -545,19 +575,27 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
         ) : (
           <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4 bg-muted/20 p-4 rounded-xl border border-border">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">Plan Start</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                Plan Start
+              </span>
               <div className="text-sm font-medium">{task.planStart}</div>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">Plan Duration</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                Plan Duration
+              </span>
               <div className="text-sm font-medium">{task.planDuration} days</div>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">Actual Start</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                Actual Start
+              </span>
               <div className="text-sm font-medium">{task.actualStart || "Not started"}</div>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">Actual Duration</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                Actual Duration
+              </span>
               <div className="text-sm font-medium">
                 {task.actualDuration > 0 ? `${task.actualDuration} days` : "-"}
               </div>
@@ -593,10 +631,22 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
                 autoFocus
               />
               <div className="flex justify-end gap-2">
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setDescription(task.description || ""); setIsEditingDesc(false); }}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    setDescription(task.description || "");
+                    setIsEditingDesc(false);
+                  }}
+                >
                   Cancel
                 </Button>
-                <Button size="sm" className="h-7 text-xs bg-[var(--rk-navy)] text-white" onClick={handleSaveDescription}>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs bg-[var(--rk-navy)] text-white"
+                  onClick={handleSaveDescription}
+                >
                   Save Description
                 </Button>
               </div>
@@ -606,7 +656,9 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
               {task.description ? (
                 task.description
               ) : (
-                <span className="text-muted-foreground/50 italic">No description provided yet. Click "+ Add Description" to add notes.</span>
+                <span className="text-muted-foreground/50 italic">
+                  No description provided yet. Click "+ Add Description" to add notes.
+                </span>
               )}
             </div>
           )}
@@ -824,11 +876,7 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
 
               <label className="cursor-pointer text-xs font-semibold text-[var(--rk-navy)] hover:underline flex items-center gap-1">
                 <Upload className="h-3 w-3" /> Upload File
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
+                <input type="file" onChange={handleFileUpload} className="hidden" />
               </label>
             </div>
           </div>
@@ -849,7 +897,11 @@ export function TaskDetailModal({ task, children }: { task: Task; children: Reac
                   onChange={(e) => setLinkUrl(e.target.value)}
                   className="h-7 text-xs flex-1"
                 />
-                <Button size="sm" className="h-7 text-xs bg-[var(--rk-navy)] text-white" onClick={handleAddLink}>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs bg-[var(--rk-navy)] text-white"
+                  onClick={handleAddLink}
+                >
                   Attach Link
                 </Button>
               </div>

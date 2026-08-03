@@ -1,7 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
 import { actions } from "@/lib/rukisha-store";
 import { OrgMember, PermissionKey, RolePermission } from "@/lib/rukisha-types";
-import { X, UserPlus, Trash2, Edit2, Check, ChevronDown, FolderOpen, RefreshCw, Building, Save, Shield, Key } from "lucide-react";
+import {
+  X,
+  UserPlus,
+  Trash2,
+  Edit2,
+  Check,
+  ChevronDown,
+  FolderOpen,
+  RefreshCw,
+  Building,
+  Save,
+  Shield,
+  Key,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,16 +28,44 @@ interface Props {
 type Tab = "directory" | "invite" | "projects" | "settings" | "matrix";
 
 const PERMISSION_LABELS: { key: PermissionKey; label: string; description: string }[] = [
-  { key: "projects:create", label: "Create Projects", description: "Create new projects in organization" },
-  { key: "projects:delete", label: "Delete Projects", description: "Permanently delete existing projects" },
-  { key: "projects:edit_setup", label: "Edit Project Setup", description: "Modify project name, dates, & team" },
+  {
+    key: "projects:create",
+    label: "Create Projects",
+    description: "Create new projects in organization",
+  },
+  {
+    key: "projects:delete",
+    label: "Delete Projects",
+    description: "Permanently delete existing projects",
+  },
+  {
+    key: "projects:edit_setup",
+    label: "Edit Project Setup",
+    description: "Modify project name, dates, & team",
+  },
   { key: "tasks:create", label: "Create Tasks", description: "Add new tasks and subtasks" },
-  { key: "tasks:edit_all", label: "Edit Any Task", description: "Edit all tasks vs assigned tasks only" },
+  {
+    key: "tasks:edit_all",
+    label: "Edit Any Task",
+    description: "Edit all tasks vs assigned tasks only",
+  },
   { key: "tasks:delete", label: "Delete Tasks", description: "Delete tasks and subtasks" },
-  { key: "comments:create", label: "Post Comments", description: "Add comments and activity updates" },
+  {
+    key: "comments:create",
+    label: "Post Comments",
+    description: "Add comments and activity updates",
+  },
   { key: "comments:delete", label: "Delete Comments", description: "Remove comments from tasks" },
-  { key: "members:manage", label: "Manage Members", description: "Invite, edit, or remove org members" },
-  { key: "vault:manage", label: "Manage Vault", description: "Upload or delete document vault files" },
+  {
+    key: "members:manage",
+    label: "Manage Members",
+    description: "Invite, edit, or remove org members",
+  },
+  {
+    key: "vault:manage",
+    label: "Manage Vault",
+    description: "Upload or delete document vault files",
+  },
 ];
 
 const ROLE_COLORS: Record<string, string> = {
@@ -34,14 +75,21 @@ const ROLE_COLORS: Record<string, string> = {
   Staff: "bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-1 ring-slate-400/30",
 };
 
-export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp, currentUserRole, onClose }: Props) {
+export function OrgUserManagementModal({
+  orgId: orgIdProp,
+  orgName: orgNameProp,
+  currentUserRole,
+  onClose,
+}: Props) {
   const [tab, setTab] = useState<Tab>("directory");
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
   // Resolved org context (handles the "default" sentinel)
-  const [resolvedOrgId, setResolvedOrgId] = useState<string>(orgIdProp === "default" ? "" : orgIdProp);
+  const [resolvedOrgId, setResolvedOrgId] = useState<string>(
+    orgIdProp === "default" ? "" : orgIdProp,
+  );
   const [resolvedOrgName, setResolvedOrgName] = useState<string>(orgNameProp);
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -132,7 +180,7 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
       }
       setLoading(false);
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgIdProp]);
 
   const fetchMembers = useCallback(async () => {
@@ -153,7 +201,12 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
       return;
     }
     setInviting(true);
-    const result = await actions.inviteOrgMember(resolvedOrgId, inviteEmail, inviteName, inviteRole);
+    const result = await actions.inviteOrgMember(
+      resolvedOrgId,
+      inviteEmail,
+      inviteName,
+      inviteRole,
+    );
     setInviting(false);
     if (result) {
       setMembers((prev) => [...prev, result]);
@@ -187,7 +240,10 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
     setLoadingProjects(true);
     const [projects, allProj] = await Promise.all([
       actions.getMemberProjects(member.email),
-      supabase.from("rk_project" as any).select("id, name").order("name"),
+      supabase
+        .from("rk_project" as any)
+        .select("id, name")
+        .order("name"),
     ]);
     setMemberProjects(projects);
     setAllProjects((allProj.data as any[]) ?? []);
@@ -234,7 +290,11 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
     }
   };
 
-  const handleToggleRolePermission = async (role: "Admin" | "PM" | "Staff", key: PermissionKey, currentEnabled: boolean) => {
+  const handleToggleRolePermission = async (
+    role: "Admin" | "PM" | "Staff",
+    key: PermissionKey,
+    currentEnabled: boolean,
+  ) => {
     const nextEnabled = !currentEnabled;
     // Optimistic UI update
     setRolePermissions((prev) => {
@@ -244,7 +304,16 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
         copy[idx] = { ...copy[idx], enabled: nextEnabled };
         return copy;
       }
-      return [...prev, { id: Math.random().toString(), orgId: resolvedOrgId, role, permissionKey: key, enabled: nextEnabled }];
+      return [
+        ...prev,
+        {
+          id: Math.random().toString(),
+          orgId: resolvedOrgId,
+          role,
+          permissionKey: key,
+          enabled: nextEnabled,
+        },
+      ];
     });
     const ok = await actions.saveRolePermission(resolvedOrgId, role, key, nextEnabled);
     if (!ok) {
@@ -262,7 +331,9 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
   const tabs: { key: Tab; label: string }[] = [
     { key: "directory", label: "Directory" },
     ...(canManage ? [{ key: "invite" as Tab, label: "Invite Member" }] : []),
-    ...(selectedMember ? [{ key: "projects" as Tab, label: `${selectedMember.name}'s Projects` }] : []),
+    ...(selectedMember
+      ? [{ key: "projects" as Tab, label: `${selectedMember.name}'s Projects` }]
+      : []),
     ...(canManage ? [{ key: "matrix" as Tab, label: "Permissions Matrix" }] : []),
     ...(isAdmin ? [{ key: "settings" as Tab, label: "Org Settings" }] : []),
   ];
@@ -276,7 +347,9 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border bg-gradient-to-r from-[var(--rk-navy)]/5 to-transparent">
           <div>
-            <h2 className="text-lg font-bold tracking-tight text-foreground">Organization Members</h2>
+            <h2 className="text-lg font-bold tracking-tight text-foreground">
+              Organization Members
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5 font-medium">{resolvedOrgName}</p>
           </div>
           <button
@@ -312,7 +385,8 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
               <div className="text-3xl">⚠️</div>
               <p className="text-sm text-red-500 font-medium">{initError}</p>
               <p className="text-xs text-muted-foreground">
-                Run <code className="bg-muted px-1 rounded">node migrate.cjs</code> on your server to create the organization tables.
+                Run <code className="bg-muted px-1 rounded">node migrate.cjs</code> on your server
+                to create the organization tables.
               </p>
             </div>
           )}
@@ -366,7 +440,9 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
                             autoFocus
                           />
                         ) : (
-                          <div className="font-semibold text-sm text-foreground truncate">{m.name}</div>
+                          <div className="font-semibold text-sm text-foreground truncate">
+                            {m.name}
+                          </div>
                         )}
                         <div className="text-xs text-muted-foreground truncate">{m.email}</div>
                       </div>
@@ -464,8 +540,8 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
           {!initError && tab === "invite" && canManage && (
             <div className="max-w-md mx-auto space-y-5">
               <p className="text-sm text-muted-foreground">
-                Invite someone to join <strong>{resolvedOrgName}</strong>. They'll have access to any
-                projects you assign them to.
+                Invite someone to join <strong>{resolvedOrgName}</strong>. They'll have access to
+                any projects you assign them to.
               </p>
 
               <div className="space-y-3">
@@ -511,8 +587,8 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
                     <strong>Staff</strong> can view & update their assigned tasks.{" "}
-                    <strong>PM</strong> can create tasks and manage the team.{" "}
-                    <strong>Admin</strong> has full control including org settings.
+                    <strong>PM</strong> can create tasks and manage the team. <strong>Admin</strong>{" "}
+                    has full control including org settings.
                   </p>
                 </div>
               </div>
@@ -654,7 +730,9 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
                 <Shield className="h-5 w-5 text-[var(--rk-navy)] dark:text-[var(--rk-gold)] shrink-0" />
                 <div>
                   <h3 className="font-semibold text-sm">Role-Based Permissions Matrix</h3>
-                  <p className="text-xs text-muted-foreground">Configure default capabilities for each role in your organization.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Configure default capabilities for each role in your organization.
+                  </p>
                 </div>
               </div>
 
@@ -675,22 +753,41 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
                     </thead>
                     <tbody className="divide-y divide-border/60">
                       {PERMISSION_LABELS.map((item) => {
-                        const adminEnabled = rolePermissions.find((r) => r.role === "Admin" && r.permissionKey === item.key)?.enabled ?? true;
-                        const pmEnabled = rolePermissions.find((r) => r.role === "PM" && r.permissionKey === item.key)?.enabled ?? (item.key !== "projects:delete");
-                        const staffEnabled = rolePermissions.find((r) => r.role === "Staff" && r.permissionKey === item.key)?.enabled ?? (item.key === "tasks:create" || item.key === "comments:create");
+                        const adminEnabled =
+                          rolePermissions.find(
+                            (r) => r.role === "Admin" && r.permissionKey === item.key,
+                          )?.enabled ?? true;
+                        const pmEnabled =
+                          rolePermissions.find(
+                            (r) => r.role === "PM" && r.permissionKey === item.key,
+                          )?.enabled ?? item.key !== "projects:delete";
+                        const staffEnabled =
+                          rolePermissions.find(
+                            (r) => r.role === "Staff" && r.permissionKey === item.key,
+                          )?.enabled ??
+                          (item.key === "tasks:create" || item.key === "comments:create");
 
                         return (
                           <tr key={item.key} className="hover:bg-muted/20 transition-colors">
                             <td className="py-3 px-4">
                               <div className="font-semibold text-foreground">{item.label}</div>
-                              <div className="text-[11px] text-muted-foreground">{item.description}</div>
+                              <div className="text-[11px] text-muted-foreground">
+                                {item.description}
+                              </div>
                             </td>
                             {(["Admin", "PM", "Staff"] as const).map((role) => {
-                              const isEnabled = role === "Admin" ? adminEnabled : role === "PM" ? pmEnabled : staffEnabled;
+                              const isEnabled =
+                                role === "Admin"
+                                  ? adminEnabled
+                                  : role === "PM"
+                                    ? pmEnabled
+                                    : staffEnabled;
                               return (
                                 <td key={role} className="py-3 px-3 text-center">
                                   <button
-                                    onClick={() => handleToggleRolePermission(role, item.key, isEnabled)}
+                                    onClick={() =>
+                                      handleToggleRolePermission(role, item.key, isEnabled)
+                                    }
                                     disabled={!isAdmin && role === "Admin"}
                                     className={`inline-flex items-center justify-center h-6 w-11 rounded-full transition-colors ${
                                       isEnabled
@@ -725,7 +822,9 @@ export function OrgUserManagementModal({ orgId: orgIdProp, orgName: orgNameProp,
                 <Building className="h-6 w-6 text-[var(--rk-navy)] dark:text-[var(--rk-gold)] shrink-0" />
                 <div>
                   <h3 className="font-semibold text-sm">Organization Details</h3>
-                  <p className="text-xs text-muted-foreground">Manage your organization's display name and settings.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Manage your organization's display name and settings.
+                  </p>
                 </div>
               </div>
 

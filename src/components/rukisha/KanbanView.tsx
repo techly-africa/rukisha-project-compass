@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { actions, dateAdd, daysBetween, getTaskStatus, todayISO, useProject } from "@/lib/rukisha-store";
+import {
+  actions,
+  dateAdd,
+  daysBetween,
+  getTaskStatus,
+  todayISO,
+  useProject,
+} from "@/lib/rukisha-store";
 import type { Task, Section } from "@/lib/rukisha-types";
 import { LayoutList, Columns, Plus } from "lucide-react";
 import { TaskDetailModal, CreateTaskModal } from "./TaskModals";
@@ -18,22 +25,54 @@ interface StatusColumn {
 }
 
 const STATUS_COLUMNS: StatusColumn[] = [
-  { id: "not_started", label: "Not Started", color: "#94a3b8",            headerBg: "bg-slate-100 dark:bg-slate-800",    defaultPct: 0 },
-  { id: "in_progress", label: "In Progress", color: "var(--rk-blue)",     headerBg: "bg-blue-50 dark:bg-blue-950",       defaultPct: 50 },
-  { id: "at_risk",     label: "At Risk",     color: "var(--rk-warn)",     headerBg: "bg-amber-50 dark:bg-amber-950",     defaultPct: 25 },
-  { id: "complete",    label: "Complete",    color: "#10b981",             headerBg: "bg-emerald-50 dark:bg-emerald-950", defaultPct: 100 },
+  {
+    id: "not_started",
+    label: "Not Started",
+    color: "#94a3b8",
+    headerBg: "bg-slate-100 dark:bg-slate-800",
+    defaultPct: 0,
+  },
+  {
+    id: "in_progress",
+    label: "In Progress",
+    color: "var(--rk-blue)",
+    headerBg: "bg-blue-50 dark:bg-blue-950",
+    defaultPct: 50,
+  },
+  {
+    id: "at_risk",
+    label: "At Risk",
+    color: "var(--rk-warn)",
+    headerBg: "bg-amber-50 dark:bg-amber-950",
+    defaultPct: 25,
+  },
+  {
+    id: "complete",
+    label: "Complete",
+    color: "#10b981",
+    headerBg: "bg-emerald-50 dark:bg-emerald-950",
+    defaultPct: 100,
+  },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function ownerInitials(name: string): string {
   if (!name) return "—";
-  const parts = name.split(/[,&]/).map((s) => s.trim()).filter(Boolean);
+  const parts = name
+    .split(/[,&]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   return (
     parts
       .slice(0, 2)
       .map((p) =>
-        p.split(" ").filter(Boolean).map((x) => x[0]?.toUpperCase()).join("").slice(0, 2),
+        p
+          .split(" ")
+          .filter(Boolean)
+          .map((x) => x[0]?.toUpperCase())
+          .join("")
+          .slice(0, 2),
       )
       .join("+") || "—"
   );
@@ -118,7 +157,10 @@ function TaskCard({
               className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
               style={{ background: section.color + "22", color: section.color }}
             >
-              <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: section.color }} />
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: section.color }}
+              />
               {section.name}
             </span>
           )}
@@ -129,17 +171,19 @@ function TaskCard({
                 isOverdue
                   ? "text-[var(--rk-danger)]"
                   : daysLeft <= 3
-                  ? "text-[var(--rk-warn)]"
-                  : "text-muted-foreground"
+                    ? "text-[var(--rk-warn)]"
+                    : "text-muted-foreground"
               }`}
             >
               {isOverdue
                 ? `${Math.abs(daysLeft)}d overdue`
                 : daysLeft === 0
-                ? "Due today"
-                : `${daysLeft}d left`}
+                  ? "Due today"
+                  : `${daysLeft}d left`}
             </span>
-            <span className="text-[10px] text-muted-foreground/50 font-mono">{task.percentComplete}%</span>
+            <span className="text-[10px] text-muted-foreground/50 font-mono">
+              {task.percentComplete}%
+            </span>
           </div>
         </div>
       </div>
@@ -184,21 +228,32 @@ function KanbanColumn({
           ? "border-[var(--rk-navy)] bg-[var(--rk-navy)]/5 ring-2 ring-[var(--rk-navy)]/20 scale-[1.01]"
           : "border-border bg-muted/30",
       ].join(" ")}
-      onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragOver(true);
+      }}
       onDragLeave={() => setIsDragOver(false)}
-      onDrop={() => { setIsDragOver(false); onDrop(); }}
+      onDrop={() => {
+        setIsDragOver(false);
+        onDrop();
+      }}
     >
       {/* Header */}
       <div className={`flex items-center gap-2.5 rounded-t-xl px-3 py-2.5 ${headerBg}`}>
         <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: color }} />
-        <span className="text-xs font-bold uppercase tracking-wider text-foreground/80">{label}</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-foreground/80">
+          {label}
+        </span>
         <span className="ml-auto rounded-full bg-background/70 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
           {tasks.length}
         </span>
       </div>
 
       {/* Cards */}
-      <div className="flex flex-col gap-2 overflow-y-auto p-2.5 flex-1" style={{ maxHeight: "calc(100vh - 230px)" }}>
+      <div
+        className="flex flex-col gap-2 overflow-y-auto p-2.5 flex-1"
+        style={{ maxHeight: "calc(100vh - 230px)" }}
+      >
         {tasks.length === 0 && (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <span className="text-3xl opacity-10">□</span>
@@ -301,7 +356,10 @@ export function KanbanView() {
         {/* Add Task Button for PM */}
         {isPM && (
           <CreateTaskModal>
-            <Button size="sm" className="bg-[var(--rk-navy)] text-white hover:bg-[var(--rk-navy)]/90 shadow-sm ml-2">
+            <Button
+              size="sm"
+              className="bg-[var(--rk-navy)] text-white hover:bg-[var(--rk-navy)]/90 shadow-sm ml-2"
+            >
               <Plus className="h-4 w-4 mr-1" />
               Add Task
             </Button>
@@ -327,9 +385,13 @@ export function KanbanView() {
               ].join(" ")}
             >
               {mode === "status" ? (
-                <><LayoutList className="h-3 w-3" /> Status</>
+                <>
+                  <LayoutList className="h-3 w-3" /> Status
+                </>
               ) : (
-                <><Columns className="h-3 w-3" /> Sections</>
+                <>
+                  <Columns className="h-3 w-3" /> Sections
+                </>
               )}
             </button>
           ))}
@@ -342,8 +404,8 @@ export function KanbanView() {
           ? STATUS_COLUMNS.map((col) => {
               const colTasks = state.tasks.filter((t) => {
                 const s = getTaskStatus(t);
-                if (col.id === "complete")    return s.status === "complete";
-                if (col.id === "at_risk")     return s.status === "at_risk";
+                if (col.id === "complete") return s.status === "complete";
+                if (col.id === "at_risk") return s.status === "at_risk";
                 if (col.id === "in_progress") return s.status === "in_progress";
                 return s.status === "not_started";
               });

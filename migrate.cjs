@@ -9,21 +9,35 @@ if (!dbUrl) {
   process.exit(0);
 }
 
-
 // Auto-correct local DB URL to Docker DB host in container/Linux production environments
-if ((process.platform !== "darwin" || fs.existsSync("/.dockerenv")) && (dbUrl.includes("localhost:5433") || dbUrl.includes("127.0.0.1:5433"))) {
+if (
+  (process.platform !== "darwin" || fs.existsSync("/.dockerenv")) &&
+  (dbUrl.includes("localhost:5433") || dbUrl.includes("127.0.0.1:5433"))
+) {
   console.log("Rewriting localhost:5433 database URL to internal Docker service db:5432");
   dbUrl = dbUrl.replace("localhost:5433", "db:5432").replace("127.0.0.1:5433", "db:5432");
 }
 
-
+const useSsl =
+  process.env.DB_SSL === "true" ||
+  (dbUrl &&
+    (dbUrl.includes("sslmode=require") ||
+      dbUrl.includes("supabase") ||
+      dbUrl.includes("digitalocean") ||
+      dbUrl.includes("amazonaws.com") ||
+      dbUrl.includes("render.com") ||
+      dbUrl.includes("railway.app")));
 
 async function run() {
   let client;
   let retries = 15;
   while (retries > 0) {
     try {
-      client = new Client({ connectionString: dbUrl });
+      const clientConfig = { connectionString: dbUrl };
+      if (useSsl) {
+        clientConfig.ssl = { rejectUnauthorized: false };
+      }
+      client = new Client(clientConfig);
       await client.connect();
       break;
     } catch (err) {
@@ -279,7 +293,9 @@ async function run() {
   // Migrate existing team roles from Member to Staff
   try {
     console.log("Migrating team roles from 'Member' to 'Staff'...");
-    await client.query("UPDATE public.rk_team SET role = 'Staff' WHERE role = 'Member' OR role IS NULL OR role = '';");
+    await client.query(
+      "UPDATE public.rk_team SET role = 'Staff' WHERE role = 'Member' OR role IS NULL OR role = '';",
+    );
     console.log("Team roles updated.");
   } catch (err) {
     console.error("Failed to migrate team roles:", err.message);
@@ -359,7 +375,6 @@ async function run() {
     console.error("Error auto-restoring project data:", seedErr.message);
   }
 
-
   await client.end();
   console.log("Migration script finished.");
 }
@@ -368,4 +383,3 @@ run().catch((err) => {
   console.error("Migration failed:", err.message || err);
   process.exit(0);
 });
-

@@ -211,7 +211,9 @@ function OwnerCell({
               >
                 <div
                   className={`flex h-4 w-4 items-center justify-center rounded border ${
-                    isSelected ? "bg-[var(--rk-navy)] border-[var(--rk-navy)] text-white" : "border-muted-foreground/30"
+                    isSelected
+                      ? "bg-[var(--rk-navy)] border-[var(--rk-navy)] text-white"
+                      : "border-muted-foreground/30"
                   }`}
                 >
                   {isSelected && <Check className="h-3 w-3" />}
@@ -248,7 +250,9 @@ function StatusBadge({ task }: { task: Task }) {
     danger: "bg-[var(--rk-danger)]/15 text-[var(--rk-danger)]",
   }[s.tone];
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${tone}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${tone}`}
+    >
       {s.label}
     </span>
   );
@@ -328,7 +332,8 @@ export function GanttChart() {
       return days.map((d, i) => ({
         key: d.iso,
         width: DAY_W,
-        title: d.isMonthStart || i === 0 ? d.date.toLocaleDateString(undefined, { month: "short" }) : "",
+        title:
+          d.isMonthStart || i === 0 ? d.date.toLocaleDateString(undefined, { month: "short" }) : "",
         subtitle: `${d.date.getDate()}`,
         isWeekend: d.isWeekend,
         isHoliday: d.isHoliday,
@@ -486,45 +491,80 @@ export function GanttChart() {
                     <div className="font-semibold text-foreground truncate px-1">{col.title}</div>
                   )}
                   <div className="text-muted-foreground truncate px-1">{col.subtitle}</div>
-                  {col.isGoLive && <div className="text-[var(--rk-gold)] text-sm leading-none">★</div>}
+                  {col.isGoLive && (
+                    <div className="text-[var(--rk-gold)] text-sm leading-none">★</div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
 
-        {/* Body */}
-        {grouped.map(({ section, tasks }) => (
-          <div key={section.id} className="relative">
-            <SectionRow
-              section={section}
-              timelineWidth={totalTimelineWidth}
-              frozenCount={frozenCount}
-            />
-            {tasks.map((task, idx) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                rangeStart={range.start}
-                days={days}
-                timelineColumns={timelineColumns}
-                viewMode={viewMode}
+          {/* Body */}
+          {grouped.map(({ section, tasks }) => (
+            <div key={section.id} className="relative">
+              <SectionRow
+                section={section}
                 timelineWidth={totalTimelineWidth}
-                rowIndex={idx}
-                isLast={idx === tasks.length - 1}
                 frozenCount={frozenCount}
               />
-            ))}
-            {/* Dependency arrows SVG overlay */}
-            <DependencyOverlay
-              tasks={tasks}
-              allTasks={state.tasks}
-              rangeStart={range.start}
-              timelineWidth={totalTimelineWidth}
-              viewMode={viewMode}
-            />
+              {tasks.map((task, idx) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  rangeStart={range.start}
+                  days={days}
+                  timelineColumns={timelineColumns}
+                  viewMode={viewMode}
+                  timelineWidth={totalTimelineWidth}
+                  rowIndex={idx}
+                  isLast={idx === tasks.length - 1}
+                  frozenCount={frozenCount}
+                />
+              ))}
+              {/* Dependency arrows SVG overlay */}
+              <DependencyOverlay
+                tasks={tasks}
+                allTasks={state.tasks}
+                rangeStart={range.start}
+                timelineWidth={totalTimelineWidth}
+                viewMode={viewMode}
+              />
+              {isPM && (
+                <div
+                  className={`${frozenCount > 0 ? "sticky left-0 z-10" : "relative"} flex bg-background`}
+                  style={{
+                    width: COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce(
+                      (a, b) => a + b.width,
+                      0,
+                    ),
+                  }}
+                >
+                  <button
+                    onClick={() => actions.addTask(section.id)}
+                    className="m-2 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    + Add task to {section.name}
+                  </button>
+                </div>
+              )}
+              <div
+                style={{
+                  width:
+                    STICKY_W -
+                    COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce(
+                      (a, b) => a + b.width,
+                      0,
+                    ),
+                }}
+              />
+              <div style={{ width: totalTimelineWidth }} />
+            </div>
+          ))}
+
+          <div className="flex border-t border-border">
             {isPM && (
               <div
-                className={`${frozenCount > 0 ? "sticky left-0 z-10" : "relative"} flex bg-background`}
+                className={`${frozenCount > 0 ? "sticky left-0 z-10" : "relative"} bg-background p-3`}
                 style={{
                   width: COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce(
                     (a, b) => a + b.width,
@@ -532,12 +572,7 @@ export function GanttChart() {
                   ),
                 }}
               >
-                <button
-                  onClick={() => actions.addTask(section.id)}
-                  className="m-2 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  + Add task to {section.name}
-                </button>
+                <AddSectionDialog />
               </div>
             )}
             <div
@@ -547,36 +582,11 @@ export function GanttChart() {
                   COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce((a, b) => a + b.width, 0),
               }}
             />
-            <div style={{ width: totalTimelineWidth }} />
           </div>
-        ))}
-
-        <div className="flex border-t border-border">
-          {isPM && (
-            <div
-              className={`${frozenCount > 0 ? "sticky left-0 z-10" : "relative"} bg-background p-3`}
-              style={{
-                width: COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce(
-                  (a, b) => a + b.width,
-                  0,
-                ),
-              }}
-            >
-              <AddSectionDialog />
-            </div>
-          )}
-          <div
-            style={{
-              width:
-                STICKY_W -
-                COLUMN_CONFIG.slice(0, Math.max(1, frozenCount)).reduce((a, b) => a + b.width, 0),
-            }}
-          />
         </div>
       </div>
     </div>
-  </div>
-);
+  );
 }
 
 function HeaderSticky({
@@ -823,8 +833,23 @@ function TaskRow({
 }: {
   task: Task;
   rangeStart: string;
-  days: { iso: string; isWeekend: boolean; isHoliday: boolean; isToday: boolean; isGoLive: boolean }[];
-  timelineColumns: { key: string; width: number; title?: string; subtitle?: string; isWeekend?: boolean; isHoliday?: boolean; isToday?: boolean; isGoLive?: boolean }[];
+  days: {
+    iso: string;
+    isWeekend: boolean;
+    isHoliday: boolean;
+    isToday: boolean;
+    isGoLive: boolean;
+  }[];
+  timelineColumns: {
+    key: string;
+    width: number;
+    title?: string;
+    subtitle?: string;
+    isWeekend?: boolean;
+    isHoliday?: boolean;
+    isToday?: boolean;
+    isGoLive?: boolean;
+  }[];
   viewMode: "day" | "week" | "month";
   timelineWidth: number;
   isLast: boolean;
@@ -1088,7 +1113,10 @@ function TaskRow({
                       updates.actualStart = task.planStart;
                       updates.actualDuration = task.planDuration;
                     } else {
-                      updates.actualDuration = Math.max(1, daysBetween(task.actualStart, today) + 1);
+                      updates.actualDuration = Math.max(
+                        1,
+                        daysBetween(task.actualStart, today) + 1,
+                      );
                     }
                   }
 
