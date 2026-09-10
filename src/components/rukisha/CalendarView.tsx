@@ -16,8 +16,11 @@ function daysInMonth(year: number, month: number): number {
 }
 
 function dayOfWeek(iso: string): number {
-  const d = new Date(iso + "T00:00:00");
-  return (d.getDay() + 6) % 7; // shift Sun=0 → Mon=0
+  // const d = new Date(iso + "T00:00:00");
+  // return (d.getDay() + 6) % 7; // shift Sun=0 → Mon=0
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return (dt.getUTCDay() + 6) % 7; // shift Sun=0 → Mon=0
 }
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
