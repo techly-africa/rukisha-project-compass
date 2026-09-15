@@ -23,7 +23,19 @@ let noEmailHandled = false;
 export function todayISO(offset = 0): string {
   const d = new Date();
   d.setDate(d.getDate() + offset);
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Parse YYYY-MM-DD as a UTC calendar date so day arithmetic is timezone-safe. */
+function parseISODate(iso: string): Date | null {
+  if (!iso || iso.length < 10) return null;
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return isNaN(dt.getTime()) ? null : dt;
 }
 
 export function uid(): string {
@@ -157,6 +169,7 @@ function mapStakeholder(s: DbStakeholder): Stakeholder {
 // *different* ID are not silently swallowed by the loadingPromise lock.
 let loadingForId: string | undefined = undefined;
 
+// TODO: this had options which interfered with the loading promise. @copain verify if we still need it
 async function loadAll(id?: string) {
   const email = (
     typeof window !== "undefined" ? localStorage.getItem("rk-email") : null
@@ -173,15 +186,10 @@ async function loadAll(id?: string) {
   noEmailHandled = false;
   const normalized = email.trim().toLowerCase();
 
-  // Resolve the effective target: when called with no ID (actions, realtime callbacks),
-  // treat the currently-loaded project as the target so the cache check works correctly.
-  // This prevents the infinite loop: realtime-event → loadAll() → fetch → state-write
-  // → realtime-event → loadAll() → ∞
+  // Should prevent the infinite loop
   const effectiveId = id ?? projectId ?? undefined;
 
-  // Cache hit: same user, same project, already loaded and no explicit ID switch.
-  // No-ID callers (actions, realtime) must not bypass this — they should only re-fetch
-  // when data is genuinely stale (i.e. loaded = false).
+  // Cache hit: same user, same project, already loaded and no explicit ID switch
   if (userEmail === normalized && loaded && effectiveId && projectId === effectiveId) {
     return;
   }
@@ -192,15 +200,12 @@ async function loadAll(id?: string) {
     if (loadingForId === lockId) {
       return loadingPromise;
     }
-    // Different target: chain after the current load completes.
     return loadingPromise.then(() => loadAll(id));
   }
 
   userEmail = normalized;
 
-  // Only reset the loaded flag (and show the spinner) when explicitly switching to
-  // a different project. No-ID callers and same-project refreshes keep showing
-  // existing content while the fetch runs in the background.
+  // Only reset the loaded flag (and show the spinner) when explicitly switching to a different project
   if (id && projectId !== id) {
     loaded = false;
     emit();
@@ -1212,10 +1217,9 @@ export function initializeStore() {
 }
 
 export function dateAdd(iso: string, days: number): string {
-  if (!iso || iso.length < 10) return iso;
-  const d = new Date(iso + "T00:00:00");
-  if (isNaN(d.getTime())) return iso;
-  d.setDate(d.getDate() + days);
+  const d = parseISODate(iso);
+  if (!d) return iso;
+  d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
 
@@ -1224,12 +1228,11 @@ export function isWorkingDay(
   excludeWeekends = true,
   holidays: string[] = [],
 ): boolean {
-  if (!iso || iso.length < 10) return true;
-  const d = new Date(iso + "T00:00:00");
-  if (isNaN(d.getTime())) return true;
-  const dayOfWeek = d.getDay();
+  const d = parseISODate(iso);
+  if (!d) return true;
+  const dayOfWeek = d.getUTCDay();
   if (excludeWeekends && (dayOfWeek === 0 || dayOfWeek === 6)) return false;
-  if (holidays && holidays.includes(iso)) return false;
+  if (holidays && holidays.includes(iso.slice(0, 10))) return false;
   return true;
 }
 
@@ -1240,11 +1243,17 @@ export function addWorkingDays(
   holidays: string[] = [],
 ): string {
   if (!startISO || startISO.length < 10) return startISO;
-  let curr = startISO;
+  if (days <= 0) return startISO.slice(0, 10);
+  let curr = startISO.slice(0, 10);
   let added = 0;
-  // If target days is 0 or 1, ensure start date itself is valid
-  while (days > 0 && added < days) {
-    curr = dateAdd(curr, 1);
+  // Cap iterations so a timezone or all-holiday calendar cannot freeze the tab.
+  const maxSteps = days * 3 + 14;
+  let steps = 0;
+  while (added < days && steps < maxSteps) {
+    const next = dateAdd(curr, 1);
+    if (next === curr) break;
+    curr = next;
+    steps++;
     if (isWorkingDay(curr, excludeWeekends, holidays)) {
       added++;
     }
@@ -1272,21 +1281,25 @@ export function getWorkingDaysCount(
 ): number {
   if (!startISO || !endISO || startISO > endISO) return 0;
   let count = 0;
-  let curr = startISO;
-  while (curr <= endISO) {
+  let curr = startISO.slice(0, 10);
+  const end = endISO.slice(0, 10);
+  const maxSteps = Math.max(daysBetween(curr, end), 0) + 2;
+  let steps = 0;
+  while (curr <= end && steps < maxSteps) {
     if (isWorkingDay(curr, excludeWeekends, holidays)) count++;
-    curr = dateAdd(curr, 1);
+    const next = dateAdd(curr, 1);
+    if (next <= curr) break;
+    curr = next;
+    steps++;
   }
   return count;
 }
 
 export function daysBetween(a: string, b: string): number {
-  if (!a || !b || a.length < 10 || b.length < 10) return 0;
-  const d1 = new Date(a + "T00:00:00");
-  const d2 = new Date(b + "T00:00:00");
-  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
-  const ms = d2.getTime() - d1.getTime();
-  return Math.round(ms / 86400000);
+  const d1 = parseISODate(a);
+  const d2 = parseISODate(b);
+  if (!d1 || !d2) return 0;
+  return Math.round((d2.getTime() - d1.getTime()) / 86400000);
 }
 
 export function getTaskStatus(t: Task): {
